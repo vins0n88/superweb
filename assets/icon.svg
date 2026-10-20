@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eeedf2"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#shadow)"/>
+  <g clip-path="url(#tile)">
+    <g fill="none" stroke="#5b6cff" stroke-opacity="0.10" stroke-width="10">
+      <circle cx="512" cy="512" r="330"/>
+      <ellipse cx="512" cy="512" rx="140" ry="330"/>
+      <path d="M182 512 H842 M219 360 H805 M219 664 H805"/>
+    </g>
+    <g transform="translate(512 512) scale(0.8) translate(-575 -455)">
+  <defs>
+    <linearGradient id="if0" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b2bd9"/><stop offset="1" stop-color="#9b5cff"/></linearGradient>
+    <linearGradient id="if1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1f5fff"/><stop offset="1" stop-color="#4fa3ff"/></linearGradient>
+    <linearGradient id="if2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0aa6c2"/><stop offset="1" stop-color="#3fe0e8"/></linearGradient>
+    <linearGradient id="if3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1fae4b"/><stop offset="1" stop-color="#6be36b"/></linearGradient>
+    <linearGradient id="if4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e8a400"/><stop offset="1" stop-color="#ffd84a"/></linearGradient>
+    <linearGradient id="if5" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6a00"/><stop offset="1" stop-color="#ffa34d"/></linearGradient>
+    <linearGradient id="if6" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e8265e"/><stop offset="1" stop-color="#ff6f9c"/></linearGradient>
+    <linearGradient id="ibody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82ff"/><stop offset="0.55" stop-color="#2546c9"/><stop offset="1" stop-color="#5b2bd9"/>
+    </linearGradient>
+    <radialGradient id="ihead" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#5fb4ff"/><stop offset="1" stop-color="#1f4fd8"/>
+    </radialGradient>
+    <radialGradient id="iglow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7ee8ff" stop-opacity="0.9"/><stop offset="1" stop-color="#7ee8ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="iglobe" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3fe0e8"/><stop offset="1" stop-color="#1f5fff"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <path d="M0 0 C75 -34 225 -27.200000000000003 300 0 C225 18.700000000000003 75 25.5 0 0Z" fill="url(#if0)" transform="translate(520 500) rotate(-172)"/>
+    <path d="M0 0 C82.5 -34 247.5 -27.200000000000003 330 0 C247.5 18.700000000000003 82.5 25.5 0 0Z" fill="url(#if1)" transform="translate(520 500) rotate(-158)"/>
+    <path d="M0 0 C87.5 -34 262.5 -27.200000000000003 350 0 C262.5 18.700000000000003 87.5 25.5 0 0Z" fill="url(#if2)" transform="translate(520 500) rotate(-144)"/>
+    <path d="M0 0 C90 -34 270 -27.200000000000003 360 0 C270 18.700000000000003 90 25.5 0 0Z" fill="url(#if3)" transform="translate(520 500) rotate(-130)"/>
+    <path d="M0 0 C87.5 -34 262.5 -27.200000000000003 350 0 C262.5 18.700000000000003 87.5 25.5 0 0Z" fill="url(#if4)" transform="translate(520 500) rotate(-116)"/>
+    <path d="M0 0 C80 -34 240 -27.200000000000003 320 0 C240 18.700000000000003 80 25.5 0 0Z" fill="url(#if5)" transform="translate(520 500) rotate(-102)"/>
+    <path d="M0 0 C67.5 -34 202.5 -27.200000000000003 270 0 C202.5 18.700000000000003 67.5 25.5 0 0Z" fill="url(#if6)" transform="translate(520 500) rotate(-88)"/>
+    <path d="M0 0 C47.5 -26 142.5 -20.8 190 0 C142.5 14.3 47.5 19.5 0 0Z" fill="url(#if5)" transform="translate(430 610) rotate(150)"/>
+    <path d="M0 0 C57.5 -26 172.5 -20.8 230 0 C172.5 14.3 57.5 19.5 0 0Z" fill="url(#if6)" transform="translate(430 610) rotate(163)"/>
+    <path d="M0 0 C53.75 -26 161.25 -20.8 215 0 C161.25 14.3 53.75 19.5 0 0Z" fill="url(#if0)" transform="translate(430 610) rotate(176)"/>
+    <path d="M0 0 C42.5 -26 127.5 -20.8 170 0 C127.5 14.3 42.5 19.5 0 0Z" fill="url(#if1)" transform="translate(430 610) rotate(189)"/>
+    <path d="M430 610 C470 520 560 470 640 455 C680 470 690 520 660 560 C610 620 520 650 430 610Z" fill="url(#ibody)"/>
+    <path d="M565 598 C578 612 590 616 604 610 M598 588 C611 602 623 606 637 600" stroke="#1b2a6b" stroke-width="11" stroke-linecap="round" fill="none"/>
+    <path d="M0 0 C55 -30 165 -24 220 0 C165 16.5 55 22.5 0 0Z" fill="url(#if3)" transform="translate(545 535) rotate(-165)"/>
+    <path d="M0 0 C62.5 -30 187.5 -24 250 0 C187.5 16.5 62.5 22.5 0 0Z" fill="url(#if4)" transform="translate(545 535) rotate(-148)"/>
+    <path d="M0 0 C63.75 -30 191.25 -24 255 0 C191.25 16.5 63.75 22.5 0 0Z" fill="url(#if5)" transform="translate(545 535) rotate(-131)"/>
+    <path d="M0 0 C57.5 -30 172.5 -24 230 0 C172.5 16.5 57.5 22.5 0 0Z" fill="url(#if6)" transform="translate(545 535) rotate(-114)"/>
+    <circle cx="655" cy="452" r="62" fill="url(#ihead)"/>
+    <path d="M700 432 L812 460 L702 478Z" fill="#14205a"/>
+    <circle cx="672" cy="440" r="13" fill="#fff"/>
+    <circle cx="676" cy="440" r="7" fill="#0b1236"/>
+    <circle cx="866" cy="462" r="84" fill="url(#iglow)"/>
+    <circle cx="866" cy="462" r="44" fill="url(#iglobe)"/>
+    <g fill="none" stroke="#fff" stroke-width="4.5" stroke-opacity="0.9">
+      <circle cx="866" cy="462" r="44"/>
+      <ellipse cx="866" cy="462" rx="18" ry="44"/>
+      <path d="M822 462 H910 M829 440 H903 M829 484 H903"/>
+    </g>
+  </g>
+    </g>
+  </g>
+</svg>

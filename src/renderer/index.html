@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: http: data:; connect-src 'none'">
+  <title>SuperWeb</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header id="titlebar">
+    <div id="tabstrip" role="tablist" aria-label="Tabs"></div>
+    <button id="new-tab" class="icon-btn" title="New tab (⌘T)" aria-label="New tab">+</button>
+    <button id="new-agent-tab" class="icon-btn" title="New Agent-profile tab (⌘⇧T): separate cookies and logins" aria-label="New agent-profile tab">◈</button>
+  </header>
+
+  <nav id="toolbar">
+    <button class="icon-btn" data-nav="back" title="Back" aria-label="Back">←</button>
+    <button class="icon-btn" data-nav="forward" title="Forward" aria-label="Forward">→</button>
+    <button class="icon-btn" data-nav="reload" id="reload" title="Reload" aria-label="Reload">↻</button>
+    <button class="icon-btn" data-nav="home" title="Home" aria-label="Home">⌂</button>
+    <form id="address-form" autocomplete="off">
+      <input id="address" type="text" spellcheck="false" placeholder="Search or enter address" aria-label="Address">
+    </form>
+    <button id="toggle-ai" class="pill-btn" title="AI panel (⌘J)" aria-pressed="true">✦ AI</button>
+    <button id="open-settings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+  </nav>
+
+  <main id="workspace">
+    <div id="content" aria-hidden="true"></div>
+    <div id="splitter" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
+    <aside id="ai-panel" aria-label="AI assistant">
+      <div class="panel-head">
+        <div class="panel-id">
+          <div class="panel-title">SuperWeb AI</div>
+          <div id="provider-badge" class="muted small"></div>
+        </div>
+        <div class="panel-switch" role="tablist">
+          <button id="view-chat" class="active" role="tab">對話</button>
+          <button id="view-jobs" role="tab">任務 <span id="jobs-badge" class="badge" hidden></span></button>
+        </div>
+        <div class="panel-tools">
+          <button id="record-skill" class="ghost-btn" title="Record what you do on this tab and save it as a reusable skill">● 錄製</button>
+          <button id="open-templates" class="ghost-btn" title="Task templates and my skills">▤ Templates</button>
+          <button id="open-audit" class="ghost-btn" title="Activity log (⌘⇧L)">Log</button>
+          <button id="new-chat" class="ghost-btn" title="New conversation">New chat</button>
+        </div>
+      </div>
+      <div id="quick-actions">
+        <button data-prompt="summarize">Summarize page</button>
+        <button data-prompt="keypoints">Key points</button>
+        <button data-prompt="explain">Explain selection</button>
+        <button data-prompt="rewrite">Rewrite selection</button>
+        <button data-prompt="translate">Translate page</button>
+        <button data-prompt="compare">⇄ 比較分頁</button>
+      </div>
+      <div id="messages" aria-live="polite"></div>
+      <div id="jobs-view" hidden>
+        <div class="jobs-toolbar">
+          <span class="muted small">背景任務在獨立分頁執行，完成會通知你。</span>
+          <button id="open-schedules" class="ghost-btn">⏱ 排程</button>
+        </div>
+        <div id="jobs-list"></div>
+      </div>
+      <form id="composer">
+        <textarea id="prompt" rows="3" placeholder="Ask about this page, or tell the agent what to do…"></textarea>
+        <div class="composer-row">
+          <span class="muted small">Enter to send · Shift+Enter for newline</span>
+          <button id="pause" type="button" class="ghost-btn" hidden>Pause</button>
+          <button id="send-bg" type="button" class="ghost-btn" title="Run in the background: its own tab, notifies you when done">⧉ 背景執行</button>
+          <button id="send" type="submit" class="primary-btn">Send</button>
+          <button id="stop" type="button" class="danger-btn" hidden>Stop</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+
+  <dialog id="templates-dialog" class="wide">
+    <form method="dialog" class="dialog-head">
+      <h2>Task templates</h2>
+      <button class="icon-btn" value="close" aria-label="Close">×</button>
+    </form>
+    <div id="template-list" class="template-list"></div>
+    <div id="template-form" class="template-form" hidden></div>
+  </dialog>
+
+  <dialog id="skill-dialog" class="wide">
+    <form method="dialog" class="dialog-head">
+      <h2>儲存技能</h2>
+      <button class="icon-btn" value="close" aria-label="Close">×</button>
+    </form>
+    <div id="skill-editor"></div>
+  </dialog>
+
+  <dialog id="schedules-dialog" class="wide">
+    <form method="dialog" class="dialog-head">
+      <h2>排程</h2>
+      <div class="dialog-head-actions">
+        <button type="button" id="schedule-new" class="primary-btn">＋ 新增排程</button>
+        <button class="icon-btn" value="close" aria-label="Close">×</button>
+      </div>
+    </form>
+    <div id="schedule-form" class="schedule-form" hidden></div>
+    <div id="schedule-list" class="schedule-list"></div>
+  </dialog>
+
+  <dialog id="audit-dialog" class="wide">
+    <form method="dialog" class="dialog-head">
+      <h2>Activity log</h2>
+      <div class="dialog-head-actions">
+        <button type="button" id="audit-export-csv" class="ghost-btn">Export CSV</button>
+        <button type="button" id="audit-export-json" class="ghost-btn">Export JSON</button>
+        <button class="icon-btn" value="close" aria-label="Close">×</button>
+      </div>
+    </form>
+    <p class="muted small">Every agent step, approval, block, and the exact page content sent to the model. Stored only on this computer (30 days).</p>
+    <div id="audit-body" class="audit-body"></div>
+  </dialog>
+
+  <dialog id="settings-dialog" class="wide">
+    <form id="settings-form" method="dialog">
+      <h2>Settings</h2>
+
+      <fieldset>
+        <legend>AI model</legend>
+        <label>Provider
+          <select name="provider" id="s-provider"></select>
+        </label>
+        <label>Model
+          <input name="model" id="s-model" type="text" spellcheck="false">
+        </label>
+        <label id="s-key-row">API key
+          <input name="apiKey" id="s-key" type="password" autocomplete="off" spellcheck="false">
+          <span class="muted small" id="s-key-hint"></span>
+        </label>
+        <label id="s-base-row">Base URL
+          <input name="baseURL" id="s-base" type="url" spellcheck="false" placeholder="http://localhost:11434/v1">
+        </label>
+        <label id="s-effort-row">Effort (Claude)
+          <select name="effort" id="s-effort">
+            <option value="">Model default</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+            <option value="xhigh">xhigh</option>
+            <option value="max">max</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Agent</legend>
+        <label class="check"><input id="s-plan" type="checkbox"> Show a step plan before the agent acts</label>
+        <label class="check"><input id="s-confirm" type="checkbox"> Ask before each click, type, or navigation</label>
+        <label class="check"><input id="s-verify" type="checkbox"> Verify results after tasks that take actions (lists done / not done)</label>
+        <p class="muted small">Submitting forms, paying, deleting, sending, and sensitive sites always ask, one action at a time.</p>
+        <label>Homepage
+          <input name="homepage" id="s-home" type="text" spellcheck="false">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Security</legend>
+        <label class="check"><input id="s-agent-profile" type="checkbox"> Agent may only operate Agent-profile tabs (◈), isolated from your everyday logins</label>
+        <label>Sensitive sites: every action needs approval (one per line)
+          <textarea id="s-sensitive" rows="3" spellcheck="false" placeholder="admin.myshop.com"></textarea>
+          <span class="muted small" id="s-builtin"></span>
+        </label>
+        <label>Blocked sites: the agent may not read or operate them
+          <textarea id="s-blocked" rows="3" spellcheck="false" placeholder="internal.company.com"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Integrations：匯出到 Google Sheets / Notion</legend>
+        <p class="muted small">Google：在 Google Cloud Console 建立「Desktop app」類型的 OAuth 用戶端（啟用 Google Sheets API），貼上 Client ID 與 Secret 後按「連接」，在瀏覽器完成授權。</p>
+        <label>Google OAuth Client ID
+          <input id="s-google-id" type="text" spellcheck="false" placeholder="xxxx.apps.googleusercontent.com">
+        </label>
+        <label>Google Client Secret
+          <input id="s-google-secret" type="password" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="copy-row">
+          <span id="s-google-state" class="small muted"></span>
+          <button type="button" id="s-google-connect" class="ghost-btn">連接 Google</button>
+          <button type="button" id="s-google-disconnect" class="ghost-btn">中斷連線</button>
+        </div>
+        <p class="muted small">Notion：在 notion.so/my-integrations 建立 Internal Integration，把 token 貼在這裡，並在要匯出的頁面「Connections」中加入這個 integration。</p>
+        <label>Notion integration token
+          <input id="s-notion-token" type="password" autocomplete="off" spellcheck="false">
+        </label>
+        <label>預設匯出到的 Notion 頁面網址
+          <input id="s-notion-parent" type="text" spellcheck="false" placeholder="https://www.notion.so/…">
+        </label>
+        <div class="copy-row">
+          <span id="s-notion-state" class="small muted"></span>
+          <button type="button" id="s-notion-check" class="ghost-btn">測試連線</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>External agents (MCP)</legend>
+        <label class="check"><input id="s-mcp-enabled" type="checkbox"> Let Claude Code, Cursor, and other local agents use this browser</label>
+        <label>Port
+          <input id="s-mcp-port" type="number" min="1024" max="65535">
+        </label>
+        <p id="s-mcp-state" class="small muted"></p>
+        <div id="s-mcp-connect" hidden>
+          <span class="muted small">Run this once in a terminal to connect Claude Code:</span>
+          <div class="copy-row">
+            <input id="s-mcp-command" type="text" readonly spellcheck="false">
+            <button type="button" id="s-mcp-copy" class="ghost-btn">Copy</button>
+            <button type="button" id="s-mcp-regen" class="ghost-btn" title="Invalidate the old token">New token</button>
+          </div>
+          <span class="muted small">MCP calls follow the same security rules and approvals as the side panel.</span>
+        </div>
+      </fieldset>
+
+      <p id="s-error" class="error small" hidden></p>
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost-btn" formnovalidate>Cancel</button>
+        <button id="s-save" value="save" class="primary-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

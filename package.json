@@ -1,0 +1,78 @@
+{
+  "name": "superweb",
+  "version": "0.4.0",
+  "description": "AI browser: structure-first page understanding with a multi-provider AI side panel",
+  "private": true,
+  "type": "module",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "icons": "node scripts/make-logo.mjs && electron scripts/render-icons.cjs",
+    "dist": "electron-builder --mac dmg",
+    "e2e": "node e2e/run.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "openai": "^7.34.0"
+  },
+  "devDependencies": {
+    "electron": "^44.8.0",
+    "electron-builder": "^26.15.3",
+    "jsdom": "^30.1.3"
+  },
+  "productName": "SuperWeb",
+  "author": "SuperAI",
+  "homepage": "https://superai.ky",
+  "build": {
+    "appId": "ky.superai.superweb",
+    "productName": "SuperWeb",
+    "copyright": "Copyright © 2026 SuperAI",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "package.json",
+      "src/**/*",
+      "assets/icon.png"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "SuperWeb ${version}",
+      "artifactName": "SuperWeb-${version}-${arch}.${ext}",
+      "contents": [
+        {
+          "x": 160,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 560,
+        "height": 380
+      }
+    }
+  }
+}
