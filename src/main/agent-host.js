@@ -8,6 +8,8 @@ import { createTask, runGuardedTool } from './ai/guard.js';
 import { createSession } from './ai/providers/index.js';
 import { createGate } from './security/gate.js';
 import { createMcpServer, connectCommand } from './mcp-server.js';
+import { createTaskTools, TASK_TOOL_DEFS, TASK_TOOL_NAMES } from './mcp-tasks.js';
+import { SUPERAI_TOOL_DEFS, SUPERAI_TOOL_NAMES, createSuperaiExecutor } from './superai-client.js';
 import { JobManager } from './jobs.js';
 
 const MCP_TASK_IDLE_MS = 15 * 60 * 1000;
@@ -15,7 +17,10 @@ const REWRITE_SYSTEM = 'You rewrite text. Follow the instruction exactly and out
 
 const stripLocal = ({ readOnly: _r, internal: _i, ...def }) => def;
 export const MODEL_TOOLS = TOOL_DEFS.map(stripLocal);
-export const MCP_TOOLS = TOOL_DEFS.filter((d) => !d.internal).map(stripLocal);
+/** Page-level tools plus task-level tools (run_task / get_job / list_templates) for apps like SuperAI. */
+// readOnlyHint lets clients such as SuperAI run reads without asking; SuperWeb's own gate still applies.
+const withHints = (d) => ({ ...stripLocal(d), ...(d.readOnly ? { annotations: { readOnlyHint: true } } : {}) });
+export const MCP_TOOLS = [...TOOL_DEFS.filter((d) => !d.internal).map(withHints), ...TASK_TOOL_DEFS.map(withHints)];
 
 /**
  * @param {object} deps
@@ -56,6 +61,20 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
    * the user is on when a task starts; background runtimes own their own tab.
    * @param {{foreground: boolean, jobId?: string, tabId?: number|null}} opts
    */
+  // SuperAI integration: superai_* tools are offered only while the connection is on.
+  const superai = createSuperaiExecutor(() => ({ ...settings.superaiConfig(), version }));
+  const modelTools = () => (settings.data.superai?.enabled ? [...MODEL_TOOLS, ...SUPERAI_TOOL_DEFS.map(stripLocal)] : MODEL_TOOLS);
+
+  /** Settings → SuperAI → Test: lists SuperAI's experts with the saved token. */
+  async function testSuperai() {
+    try {
+      const text = await superai('superai_list_experts', {});
+      return { ok: true, text };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+
   function createBinding({ foreground, jobId = '', tabId = null }) {
     const binding = { tabId };
     const tabs = () => getTabs();
@@ -106,14 +125,16 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
       tabUrl: (id) => tabs().urlOf(id),
       searchTemplate: () => settings.data.searchTemplate,
     });
-    return { binding, browser, review, execute: createToolExecutor(browser) };
+    const pageTools = createToolExecutor(browser);
+    const execute = (name, input) => (SUPERAI_TOOL_NAMES.has(name) ? superai(name, input) : pageTools(name, input));
+    return { binding, browser, review, execute };
   }
 
   /** One agent with its own tab binding. */
   function createRuntime({ foreground, jobId = '', tabId = null, emit, approveFn = approve, reviewPlanFn = reviewPlan }) {
     const b = createBinding({ foreground, jobId, tabId });
     const agent = new Agent({
-      createSession: () => createSession(settings.providerConfig(), { system: SYSTEM_PROMPT, tools: MODEL_TOOLS }),
+      createSession: () => createSession(settings.providerConfig(), { system: SYSTEM_PROMPT, tools: modelTools() }),
       execute: b.execute,
       review: b.review,
       approve: approveFn,
@@ -191,7 +212,10 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
   let mcpLastCall = 0;
   let mcpCallSeq = 0;
 
+  const taskTools = createTaskTools({ jobs, activeUrl: () => getTabs().activeUrl(), audit: writeAudit });
+
   async function callFromMcp(name, args) {
+    if (TASK_TOOL_NAMES.has(name)) return taskTools.call(name, args);
     mcpBinding.binding.tabId = getTabs().activeId;
     if (!mcpTask || Date.now() - mcpLastCall > MCP_TASK_IDLE_MS) {
       mcpTask = createTask({ goal: '', source: 'mcp', startUrl: getTabs().activeUrl() });
@@ -231,11 +255,11 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
 
   function mcpStatus() {
     const cfg = settings.data.mcp;
-    return { ...mcpState, enabled: cfg.enabled, command: cfg.token ? connectCommand(cfg.port, cfg.token) : '' };
+    return { ...mcpState, enabled: cfg.enabled, token: cfg.token, command: cfg.token ? connectCommand(cfg.port, cfg.token) : '' };
   }
 
   return {
-    agent: panel.agent, jobs, rewrite, resolveApproval, resolvePlan, cancelPending, syncMcp, mcpStatus,
+    agent: panel.agent, jobs, rewrite, resolveApproval, resolvePlan, cancelPending, syncMcp, mcpStatus, testSuperai,
     stopMcp: () => mcp?.stop(),
   };
 }

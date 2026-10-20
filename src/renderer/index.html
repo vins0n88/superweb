@@ -216,6 +216,28 @@
         </div>
       </fieldset>
 
+      <fieldset>
+        <legend>SuperAI</legend>
+        <p class="muted small">SuperWeb 和 SuperAI 可以互相調用：SuperAI 的專家能請 SuperWeb 開網頁、擷取資料；SuperWeb 的任務也能交給 SuperAI 的專家分析、寫報告或存進文件庫。</p>
+        <label class="check"><input id="s-superai-enabled" type="checkbox"> 讓 SuperWeb 的 AI 可以把工作交給 SuperAI</label>
+        <label>SuperAI 連線權杖（在 SuperAI「設定 → 文件來源 → 新增連線 → SuperWeb」建立）
+          <input id="s-superai-token" type="password" autocomplete="off" spellcheck="false" placeholder="slib_…">
+        </label>
+        <label>SuperAI 連接網址（留空 = 自動找到執行中的 SuperAI）
+          <input id="s-superai-url" type="text" spellcheck="false" placeholder="http://127.0.0.1:52083/mcp/agent">
+        </label>
+        <div class="copy-row">
+          <span id="s-superai-state" class="small muted"></span>
+          <button type="button" id="s-superai-check" class="ghost-btn">測試連線</button>
+          <button type="button" id="s-superai-disconnect" class="ghost-btn">清除權杖</button>
+        </div>
+        <span class="muted small">反方向（SuperAI 操控 SuperWeb）：先開啟上面的「External agents (MCP)」，再到 SuperAI「設定 → 連接器 → SuperWeb」貼上這個權杖。</span>
+        <div class="copy-row">
+          <input id="s-superai-mcp-token" type="text" readonly spellcheck="false" placeholder="先開啟 External agents (MCP)">
+          <button type="button" id="s-superai-mcp-copy" class="ghost-btn">複製</button>
+        </div>
+      </fieldset>
+
       <p id="s-error" class="error small" hidden></p>
       <div class="dialog-actions">
         <button value="cancel" class="ghost-btn" formnovalidate>Cancel</button>

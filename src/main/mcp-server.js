@@ -62,7 +62,7 @@ export function createMcpServer({ port, token, version, tools, callTool }) {
         return reply({});
       case 'tools/list':
         return reply({
-          tools: tools().map((t) => ({ name: t.name, description: t.description, inputSchema: t.input_schema })),
+          tools: tools().map((t) => ({ name: t.name, description: t.description, inputSchema: t.input_schema, ...(t.annotations ? { annotations: t.annotations } : {}) })),
         });
       case 'tools/call': {
         const name = params?.name;

@@ -3,6 +3,7 @@
 // action is reported as an error, never as a pretend success.
 
 import { normalizeInput } from '../url.js';
+import { SUPERAI_TOOL_DEFS } from '../superai-client.js';
 
 const ref = { type: 'integer', description: 'Element ref number from the latest snapshot, e.g. 12 for [12]' };
 
@@ -164,7 +165,8 @@ export const TOOL_DEFS = [
   },
 ];
 
-const DEFS_BY_NAME = new Map(TOOL_DEFS.map((d) => [d.name, d]));
+// SuperAI tools are offered to the model only while the SuperAI connection is on (agent-host).
+const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS].map((d) => [d.name, d]));
 
 export function isInternal(name) {
   return Boolean(DEFS_BY_NAME.get(name)?.internal);
@@ -236,6 +238,9 @@ export function describeCall(name, input, label = '') {
     case 'propose_plan': return 'Propose a plan';
     case 'report_result': return 'Verify result';
     case 'output_table': return `Table: ${input.title}`;
+    case 'superai_list_experts': return 'List SuperAI experts';
+    case 'superai_run_task': return `Send to SuperAI: "${String(input.prompt ?? '').slice(0, 80)}${String(input.prompt ?? '').length > 80 ? '…' : ''}"`;
+    case 'superai_get_task': return `Check SuperAI task ${input.task_id}`;
     default: return name;
   }
 }

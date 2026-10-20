@@ -22,6 +22,7 @@ export const DEFAULTS = {
   sites: { sensitive: [], blocked: [] }, // S5: user additions on top of the built-in list
   mcp: { enabled: false, port: MCP_DEFAULT_PORT, token: '' },
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
+  superai: { enabled: false, url: '' }, // SuperAI integration; url '' = discover the running app (token lives in keys)
   homepage: 'https://superai.ky',
   searchTemplate: DEFAULT_SEARCH,
 };
@@ -38,6 +39,7 @@ export class Settings {
         ...this.data, ...saved, keys: saved.keys ?? {},
         sites: { ...DEFAULTS.sites, ...saved.sites },
         mcp: { ...DEFAULTS.mcp, ...saved.mcp },
+        superai: { ...DEFAULTS.superai, ...saved.superai },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
           notion: { ...DEFAULTS.integrations.notion, ...saved.integrations?.notion },
@@ -65,6 +67,7 @@ export class Settings {
         googleSecret: Boolean(keys['int:google_secret']),
         googleConnected: Boolean(keys['int:google_refresh']),
         notionToken: Boolean(keys['int:notion_token']),
+        superaiToken: Boolean(keys['int:superai_token']),
       },
       builtinSensitive: DEFAULT_SENSITIVE_DOMAINS,
     };
@@ -114,6 +117,18 @@ export class Settings {
       if (patch.mcp.regenerateToken || (mcp.enabled && !mcp.token)) mcp.token = newToken();
       this.data.mcp = mcp;
     }
+    if (patch.superai) {
+      const cur = { ...DEFAULTS.superai, ...this.data.superai };
+      if (patch.superai.enabled !== undefined) cur.enabled = Boolean(patch.superai.enabled);
+      if (typeof patch.superai.url === 'string') {
+        const url = patch.superai.url.trim();
+        if (url && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(url)) throw new Error('SuperAI 網址必須是本機位址，例如 http://127.0.0.1:52083/mcp/agent');
+        cur.url = url;
+      }
+      if (typeof patch.superai.token === 'string' && patch.superai.token.trim()) this.setKey('int:superai_token', patch.superai.token.trim());
+      if (patch.superai.disconnect) this.setKey('int:superai_token', '');
+      this.data.superai = cur;
+    }
     if (typeof patch.homepage === 'string' && patch.homepage.trim()) this.data.homepage = patch.homepage.trim();
     if (patch.integrations) {
       const g = patch.integrations.google ?? {};
@@ -161,6 +176,11 @@ export class Settings {
   }
 
   /** Config for createSession() for the active provider. */
+  /** SuperAI connection (main process only: includes the token). */
+  superaiConfig() {
+    return { ...DEFAULTS.superai, ...this.data.superai, token: this.getKey('int:superai_token') };
+  }
+
   providerConfig() {
     const provider = this.data.provider;
     const envKey = { anthropic: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY }[provider];

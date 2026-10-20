@@ -339,6 +339,7 @@ function registerIpc() {
 
   // ---- MCP (F6.1) ----
   ipcMain.handle('mcp:status', () => host.mcpStatus());
+  ipcMain.handle('superai:test', () => host.testSuperai());
 }
 
 function buildMenu() {

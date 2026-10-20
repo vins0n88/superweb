@@ -38,6 +38,8 @@ export function initSettings({ api, panel }) {
     $('s-google-state').textContent = s.googleConnected ? '✓ 已連接 Google Sheets' : '未連接';
     $('s-google-disconnect').hidden = !s.googleConnected;
     $('s-notion-state').textContent = s.notionToken ? '已儲存 token' : '未設定';
+    $('s-superai-state').textContent = s.superaiToken ? '已儲存權杖' : '未設定權杖';
+    $('s-superai-disconnect').hidden = !s.superaiToken;
   }
 
   async function renderMcp() {
@@ -48,6 +50,7 @@ export function initSettings({ api, panel }) {
     state.textContent = status.running ? `Running on 127.0.0.1:${status.port}` : status.error ? `Not running: ${status.error}` : 'Off';
     state.className = `small ${status.running ? 'ok' : status.error ? 'error' : 'muted'}`;
     $('s-mcp-command').value = status.command;
+    $('s-superai-mcp-token').value = status.enabled ? status.token : '';
     $('s-mcp-connect').hidden = !status.enabled || !status.command;
   }
 
@@ -72,6 +75,10 @@ export function initSettings({ api, panel }) {
     $('s-notion-token').value = '';
     $('s-notion-token').placeholder = settings.integrationSecrets.notionToken ? '•••••••• (saved)' : 'secret_…';
     $('s-notion-parent').value = settings.integrations.notion.parent;
+    $('s-superai-enabled').checked = settings.superai.enabled;
+    $('s-superai-url').value = settings.superai.url;
+    $('s-superai-token').value = '';
+    $('s-superai-token').placeholder = settings.integrationSecrets.superaiToken ? '•••••••• (已儲存)' : 'slib_…';
     renderIntegrations();
     fillProviderFields();
     await renderMcp();
@@ -96,6 +103,7 @@ export function initSettings({ api, panel }) {
         google: { clientId: $('s-google-id').value, clientSecret: $('s-google-secret').value },
         notion: { token: $('s-notion-token').value, parent: $('s-notion-parent').value },
       },
+      superai: { enabled: $('s-superai-enabled').checked, url: $('s-superai-url').value, token: $('s-superai-token').value, ...extra.superai },
     };
     if ($('s-key').value) patch.apiKeys = { [p]: $('s-key').value };
     settings = await api.settings.update(patch);
@@ -151,6 +159,39 @@ export function initSettings({ api, panel }) {
       if (!res.ok) showError(res.error);
     } catch (err) {
       showError(err);
+    }
+  });
+  $('s-superai-check').addEventListener('click', async () => {
+    try {
+      await save();
+      $('s-superai-state').textContent = '連線中…';
+      const res = await api.superai.test();
+      if (res.ok) {
+        const n = (res.text.match(/^- /gm) ?? []).length;
+        $('s-superai-state').textContent = `✓ 已連上 SuperAI${n ? `，可用專家 ${n} 位` : ''}`;
+      } else {
+        renderIntegrations();
+        showError(res.error);
+      }
+    } catch (err) {
+      showError(err);
+    }
+  });
+  $('s-superai-disconnect').addEventListener('click', async () => {
+    try {
+      await save({ superai: { disconnect: true } });
+      renderIntegrations();
+    } catch (err) {
+      showError(err);
+    }
+  });
+  $('s-superai-mcp-copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('s-superai-mcp-token').value);
+      $('s-superai-mcp-copy').textContent = '已複製';
+      setTimeout(() => { $('s-superai-mcp-copy').textContent = '複製'; }, 1500);
+    } catch {
+      $('s-superai-mcp-token').select();
     }
   });
   $('s-mcp-copy').addEventListener('click', async () => {

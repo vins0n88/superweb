@@ -125,11 +125,23 @@ test('settings: integration secrets are encrypted and only exposed as booleans',
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'superweb-'));
   const s = new Settings(dir, fakeSafeStorage());
   const view = s.update({ integrations: { google: { clientId: 'abc.apps.googleusercontent.com', clientSecret: 'GOCSPX-secret' }, notion: { token: 'secret_ntn', parent: 'https://notion.so/x' } } });
-  assert.deepEqual(view.integrationSecrets, { googleSecret: true, googleConnected: false, notionToken: true });
+  assert.deepEqual(view.integrationSecrets, { googleSecret: true, googleConnected: false, notionToken: true, superaiToken: false });
   assert.equal(JSON.stringify(view).includes('GOCSPX-secret'), false);
   assert.equal(fs.readFileSync(path.join(dir, 'superweb-settings.json'), 'utf8').includes('secret_ntn'), false);
   assert.equal(s.getKey('int:notion_token'), 'secret_ntn');
   assert.throws(() => s.update({ integrations: { google: { clientId: 'nope' } } }), /googleusercontent/);
+});
+
+test('settings: SuperAI token is encrypted, URL must be local, disconnect clears it', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'superweb-'));
+  const s = new Settings(dir, fakeSafeStorage());
+  const view = s.update({ superai: { enabled: true, token: ' slib_abc ', url: 'http://127.0.0.1:52083/mcp/agent' } });
+  assert.equal(view.integrationSecrets.superaiToken, true);
+  assert.equal(JSON.stringify(view).includes('slib_abc'), false);
+  assert.deepEqual(s.superaiConfig(), { enabled: true, url: 'http://127.0.0.1:52083/mcp/agent', token: 'slib_abc' });
+  assert.throws(() => s.update({ superai: { url: 'https://evil.test/mcp/agent' } }), /本機位址/);
+  s.update({ superai: { disconnect: true } });
+  assert.equal(s.superaiConfig().token, '');
 });
 
 test('markdown: full-width and doubled citations are clickable too', () => {

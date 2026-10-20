@@ -104,5 +104,8 @@ contextBridge.exposeInMainWorld('superweb', {
   mcp: {
     status: invoke('mcp:status'),
   },
+  superai: {
+    test: invoke('superai:test'),
+  },
   onShortcut: on('shortcut'),
 });

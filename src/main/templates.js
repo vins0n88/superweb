@@ -178,8 +178,8 @@ export function priceVerdict(tables, target) {
     if (!Number.isFinite(price)) continue;
     const fmt = (n) => n.toLocaleString('en-US');
     return price <= goal
-      ? `系統比對：目前價格 ${fmt(price)} 低於或等於目標價 ${fmt(goal)}，已達目標價（at or below target）。`
-      : `系統比對：目前價格 ${fmt(price)} 高於目標價 ${fmt(goal)}，尚未達標（above target）。`;
+      ? `系統比對（以此為準）：目前價格 ${fmt(price)} 低於或等於目標價 ${fmt(goal)}，已達目標價（at or below target）。`
+      : `系統比對（以此為準）：目前價格 ${fmt(price)} 高於目標價 ${fmt(goal)}，尚未達標（above target）。`;
   }
   return '';
 }

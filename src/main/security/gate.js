@@ -58,6 +58,8 @@ export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searc
     const { name, input } = call;
 
     if (name === 'navigate' || name === 'open_tab') return navigationVerdict(input.url, task);
+    // Handing work (and whatever data the prompt carries) to SuperAI is always confirmed on its own.
+    if (name === 'superai_run_task') return { action: 'confirm', reason: 'Sends this task and its data to SuperAI' };
     if (name === 'read_tab') {
       const target = tabUrl(input.id);
       if (siteTier(target, sites()) === 'blocked') return { action: 'block', reason: `${hostOf(target)} is on the blocked-sites list; the agent may not read it (S5)` };
