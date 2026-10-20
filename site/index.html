@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SuperWeb</title>
-<meta name="description" content="SuperWeb 是 SuperAI 出品的 AI 瀏覽器：先讀懂網頁結構再動手，每一步都可預覽、批准與稽核。支援 Claude、OpenAI 與本機 Ollama。">
+<meta name="description" content="SuperWeb 是 SuperAI 出品的 AI 瀏覽器：先讀懂網頁結構再動手，每一步都可預覽、批准與稽核。支援 Claude、OpenAI 與本機 Ollama，並能和 SuperAI 互相調用。">
 <meta property="og:title" content="SuperWeb — 會讀懂網頁結構的 AI 瀏覽器">
 <meta property="og:description" content="擷取、比價、填表、研究、排程監控。先讀結構再動手，每一步都經你批准。">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -17,177 +17,131 @@
 <header class="top">
   <div class="wrap top-row">
     <a class="brand" href="#">
-      <img src="icon.svg" alt="" width="32" height="32">
+      <img src="icon.svg" alt="" width="30" height="30">
       <span>SuperWeb</span>
     </a>
     <nav class="nav" aria-label="主選單">
-      <a href="#how">運作方式</a>
-      <a href="#features">功能</a>
-      <a href="#safety">安全</a>
-      <a href="#superai">搭配 SuperAI</a>
+      <a href="#templates">範本</a>
+      <a href="#together">搭配 SuperAI</a>
+      <a href="#own">隱私與安全</a>
     </nav>
-    <a class="btn btn-small" href="#download">下載</a>
+    <a class="btn btn-small js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.4.0/SuperWeb-0.4.0-arm64.dmg">下載</a>
   </div>
 </header>
 
 <main>
+  <!-- Hero: one thesis line, then the product's own input box as a live demo -->
   <section class="hero">
-    <div class="wrap hero-grid">
-      <div class="hero-copy">
-        <p class="eyebrow">SuperAI 出品 · macOS 版 v0.4.0</p>
-        <h1>會讀懂網頁結構的<br>AI 瀏覽器</h1>
-        <p class="lede">SuperWeb 不靠截圖猜按鈕。它先把網頁讀成一份有編號的結構清單，再照你批准的計畫逐步操作：擷取表格、比價、批量填表、研究整理，每一步都看得到、停得下來、查得到紀錄。</p>
-        <div class="cta-row">
-          <a class="btn" href="#download">下載 macOS 版</a>
-          <a class="btn btn-ghost" href="#how">看它怎麼做事</a>
+    <div class="wrap">
+      <p class="eyebrow">SuperAI 出品 · macOS 版 v0.4.0</p>
+      <h1>會讀懂網頁結構的<br>AI 瀏覽器</h1>
+      <p class="lede">交代一件網頁上的事，SuperWeb 先讀懂頁面、列出計畫，經你批准後一步步做完，最後自己檢查結果。</p>
+
+      <div class="console" id="console">
+        <div class="ask-box">
+          <span class="ask-label" id="ask-text">比較三家店 Aurora X1 耳機的價格、庫存與運費</span>
+          <span class="ask-go" aria-hidden="true">↵</span>
         </div>
-        <p class="fine">Apple Silicon · 支援 Claude、OpenAI、Ollama 本機模型</p>
+        <div class="chips" role="group" aria-label="範例任務">
+          <button type="button" class="chip on" data-demo="compare">比價</button>
+          <button type="button" class="chip" data-demo="form">批量填表</button>
+          <button type="button" class="chip" data-demo="watch">降價通知</button>
+          <button type="button" class="chip" data-demo="research">附引用的研究</button>
+        </div>
+        <ol class="run" id="run" aria-live="polite">
+          <li data-k="讀結構"><span class="t">讀取 3 個商品頁，找到「售價」「庫存」「運費」欄位 <code>[§2] [§3] [§5]</code></span></li>
+          <li data-k="計畫"><span class="t">打開 A 購物、B 購物、C 購物的 Aurora X1 頁面，逐頁記錄後整理成表</span></li>
+          <li data-k="等你批准" class="wait"><span class="t">開啟 3 個網站 · <span class="pill">允許</span><span class="pill ghost">拒絕</span></span></li>
+          <li data-k="結果"><span class="t">B 購物 NT$8,490 最便宜，現貨、免運 · 已輸出可下載的 CSV</span></li>
+          <li data-k="驗證" class="ok"><span class="t">3 項要求全部完成，每個價格都重新讀過原頁面</span></li>
+        </ol>
       </div>
 
-      <figure class="demo" aria-label="SuperWeb 介面示意：左邊是網頁，右邊是 AI 讀到的結構與計畫">
-        <div class="win-bar">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="url">forms.example.tw/register</span>
-        </div>
-        <div class="win-body">
-          <div class="page">
-            <p class="page-h">活動報名</p>
-            <label class="field"><span>姓名</span><span class="input typed">王小明</span></label>
-            <label class="field"><span>Email</span><span class="input typed">ming@example.com</span></label>
-            <label class="field"><span>手機</span><span class="input caret"></span></label>
-            <span class="submit">送出報名</span>
-          </div>
-          <div class="panel">
-            <p class="panel-h">頁面結構</p>
-            <pre class="snap"><span class="r">[3]</span> textbox "姓名"
-<span class="r">[4]</span> textbox "Email"
-<span class="r hl">[5]</span> textbox "手機"
-<span class="r">[6]</span> button "送出報名"</pre>
-            <div class="ask">
-              <p class="ask-h">等你批准</p>
-              <p class="ask-t">在「手機」輸入「0912345678」</p>
-              <div class="ask-b"><span>允許</span><span>拒絕</span></div>
-            </div>
-          </div>
-        </div>
+      <div class="cta-row">
+        <a class="btn js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.4.0/SuperWeb-0.4.0-arm64.dmg">下載 macOS 版</a>
+        <span class="fine">Apple Silicon · 免費 · 自帶 API key 或用本機模型</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Specialists → templates -->
+  <section id="templates" class="band">
+    <div class="wrap">
+      <h2>十個範本，填幾個欄位就開工</h2>
+      <p class="sub">每個範本都附程式核對：比價由程式比數字，填表逐欄對照你的資料，清單會數清楚翻了幾頁。</p>
+      <div class="cards">
+        <article class="card"><h3>比價</h3><p>多個網站同一商品的價格、庫存、運費</p><span class="tag">擷取</span></article>
+        <article class="card"><h3>擷取表格</h3><p>頁面上的表格或結構化資料轉成 CSV</p><span class="tag">擷取</span></article>
+        <article class="card"><h3>多頁清單</h3><p>沿著網站的「下一頁」翻頁收集欄位</p><span class="tag">擷取</span></article>
+        <article class="card"><h3>主題研究</h3><p>多個來源整理成附原文引用的報告</p><span class="tag">研究</span></article>
+        <article class="card"><h3>批量填表</h3><p>貼上 CSV，逐筆填寫，送出前問你</p><span class="tag">操作</span></article>
+        <article class="card"><h3>頁面摘要</h3><p>重點附【§n】引用，點一下跳回原文</p><span class="tag">閱讀</span></article>
+        <article class="card"><h3>翻譯</h3><p>整頁或選定段落翻成你的語言</p><span class="tag">閱讀</span></article>
+        <article class="card"><h3>搜尋彙整</h3><p>搜尋、打開結果、整理成一張表</p><span class="tag">研究</span></article>
+        <article class="card"><h3>聯絡資訊</h3><p>找出網站公開的信箱、電話與地址</p><span class="tag">擷取</span></article>
+        <article class="card"><h3>價格檢查</h3><p>和目標價比對，排程後降價才通知</p><span class="tag">監控</span></article>
+      </div>
+      <div class="more">
+        <p><b>背景任務</b>最多同時三個，你照常瀏覽，完成或要批准時跳通知。</p>
+        <p><b>排程</b>每天或每週自動跑，結果真的變了才通知你。</p>
+        <p><b>錄製技能</b>自己操作一遍存起來，換個參數一鍵重播。</p>
+        <p><b>匯出</b>結果一鍵送到 Google Sheets 或 Notion。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Co-working room: SuperWeb × SuperAI -->
+  <section id="together">
+    <div class="wrap pair">
+      <div class="pair-copy">
+        <h2>瀏覽器和你的 AI 同事一起工作</h2>
+        <p class="sub">SuperWeb 和 SuperAI 互相調用。SuperWeb 負責上網、讀頁、擷取和操作；SuperAI 的專家負責分析、寫報告、存進你的文件庫。哪一邊起頭都可以。</p>
+        <ul class="facts">
+          <li>SuperAI 的專家可以把整個瀏覽任務交給 SuperWeb，拿回表格與驗證結果</li>
+          <li>SuperWeb 交給 SuperAI 的每一筆資料都先經你批准，任務照常出現在 SuperAI 的任務列表</li>
+          <li>兩個 App 都在你的電腦上，透過本機 MCP 連接</li>
+        </ul>
+      </div>
+      <figure class="room" aria-label="協作範例：使用者同時請 SuperWeb 與 SuperAI 處理比價與購買建議">
+        <div class="msg me"><p>幫我看三家店的 Aurora X1 價格，順便寫一句購買建議</p><span class="who">你 · <b>@SuperWeb</b> <b>@SuperAI</b></span></div>
+        <div class="msg"><span class="who sw">SuperWeb</span><p>讀了 3 個商品頁：A NT$8,990、B NT$8,490、C NT$8,750，都有現貨。已整理成表，並請 SuperAI 寫建議（你剛才已批准）。</p></div>
+        <div class="msg"><span class="who sa">SuperAI · 採購顧問</span><p>B 購物便宜 500 元且免運，若不急著用，可以設一個 NT$8,300 的降價通知再下單。</p></div>
+        <div class="input-mock">交代給 SuperWeb 或 SuperAI…</div>
       </figure>
     </div>
   </section>
 
-  <section id="how" class="band">
-    <div class="wrap">
-      <h2>一個任務，四個你看得見的步驟</h2>
-      <ol class="steps">
-        <li>
-          <h3>讀結構</h3>
-          <p>把頁面讀成編號清單和可引用的段落【§n】，回答時附上原文位置，點一下就跳過去。</p>
-        </li>
-        <li>
-          <h3>提計畫</h3>
-          <p>動手前先列出步驟，寫明要點哪個按鈕、在哪個欄位輸入什麼。你可以修改、批准或取消。</p>
-        </li>
-        <li>
-          <h3>逐步執行</h3>
-          <p>會改動頁面的動作都先問你。隨時可以暫停、自己接手操作，再讓它繼續。</p>
-        </li>
-        <li>
-          <h3>自我驗證</h3>
-          <p>結束前重新檢查實際結果並逐項回報。填表會逐欄對照你的資料，漏了哪筆就補做或列出來。</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section id="features">
-    <div class="wrap">
-      <h2>常用工作，直接套用</h2>
-      <p class="sub">十個內建範本，填幾個欄位就能開始；結果是可複製、可下載 CSV 的表格。</p>
-      <ul class="tpl">
-        <li><b>比價</b><span>多個網站同一商品的價格、庫存、運費</span></li>
-        <li><b>擷取頁面表格</b><span>表格或結構化資料轉成 CSV</span></li>
-        <li><b>多頁清單擷取</b><span>沿著網站的「下一頁」翻頁收集</span></li>
-        <li><b>主題研究</b><span>多個來源整理成附引用的報告</span></li>
-        <li><b>批量填表</b><span>貼上 CSV，逐筆填寫並送出</span></li>
-        <li><b>頁面摘要</b><span>重點附原文段落，可點擊跳轉</span></li>
-        <li><b>翻譯</b><span>整頁或選定區塊翻成你的語言</span></li>
-        <li><b>搜尋彙整</b><span>搜尋、打開結果、整理成表</span></li>
-        <li><b>聯絡資訊</b><span>找出網站公開的信箱、電話、地址</span></li>
-        <li><b>價格檢查</b><span>和目標價比對，由程式判斷是否達標</span></li>
-      </ul>
-
-      <div class="more">
-        <article>
-          <h3>背景任務</h3>
-          <p>任務在獨立分頁跑，最多同時三個；你繼續瀏覽，完成或需要批准時跳系統通知。</p>
-        </article>
-        <article>
-          <h3>排程監控</h3>
-          <p>每天或每週自動執行，只有結果真的變了才通知你，例如降價或補貨。</p>
-        </article>
-        <article>
-          <h3>錄製技能</h3>
-          <p>自己操作一遍存成技能，下次換個參數一鍵重播。</p>
-        </article>
-        <article>
-          <h3>跨分頁比較</h3>
-          <p>勾選幾個打開的分頁，直接產生比較表。</p>
-        </article>
-        <article>
-          <h3>匯出</h3>
-          <p>結果一鍵送到 Google Sheets 或 Notion。</p>
-        </article>
-        <article>
-          <h3>MCP 伺服器</h3>
-          <p>Claude Code 等外部 AI 可透過 MCP 操控 SuperWeb，套用同一套安全規則。</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section id="safety" class="band">
-    <div class="wrap safety">
+  <!-- Own your intelligence -->
+  <section id="own" class="band">
+    <div class="wrap own">
       <div>
-        <h2>每個動作都要過安全閘門</h2>
-        <p class="sub">網頁上的文字只是資料，不是指令。SuperWeb 在每次點擊、輸入、跳轉前檢查十二條規則，被擋下或需要確認的動作都寫進稽核日誌。</p>
+        <h2>你的資料，你作主</h2>
+        <p class="sub">可以接 Claude、OpenAI 或任何 OpenAI 相容服務，也可以用 Ollama 在本機跑模型，頁面內容完全不離開你的電腦。不管用哪種模型，每個動作都先過安全閘門。</p>
       </div>
       <ul class="rules">
         <li><code>S3</code>只在任務相關的網域內操作</li>
-        <li><code>S4</code>阻擋把頁面資料夾帶到外部網址或跨網域表單</li>
-        <li><code>S5</code>銀行、支付等敏感網站分級處理</li>
-        <li><code>S6</code>付款、刪除、送出等高風險動作一律單獨確認</li>
-        <li><code>S8</code>不輸入卡號、身分證號、密碼、API key</li>
+        <li><code>S4</code>擋下把頁面資料夾帶到外部網址或跨網域表單</li>
+        <li><code>S5</code>銀行、支付等敏感網站另外分級</li>
+        <li><code>S6</code>付款、刪除、送出一律單獨確認，不能一次全允許</li>
+        <li><code>S8</code>不輸入卡號、身分證號、密碼與 API key</li>
         <li><code>S10</code>每一步、每次批准與阻擋都寫進稽核日誌</li>
       </ul>
     </div>
   </section>
 
-  <section id="superai">
-    <div class="wrap pair">
+  <section id="download" class="final">
+    <div class="wrap final-grid">
       <div>
-        <p class="eyebrow">即將推出</p>
-        <h2>和 SuperAI 互相調用</h2>
-        <p class="sub">SuperWeb 與 SuperAI 透過 MCP 雙向連接：SuperAI 的專家可以請 SuperWeb 打開網頁、擷取資料；SuperWeb 的任務也能請 SuperAI 的專家和技能接手分析。</p>
-      </div>
-      <div class="pair-diagram" aria-hidden="true">
-        <div class="node">SuperAI<small>專家 · 技能 · 任務</small></div>
-        <div class="link"><span>操控瀏覽器 →</span><span>← 調用專家</span></div>
-        <div class="node">SuperWeb<small>讀頁 · 擷取 · 操作</small></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="download" class="band">
-    <div class="wrap dl">
-      <div>
-        <h2>下載 SuperWeb</h2>
+        <h2>現在就試試 SuperWeb</h2>
         <p class="sub">適用於 Apple Silicon（M 系列晶片）的 Mac。</p>
-        <a class="btn" id="dl-btn" href="https://github.com/vins0n88/superweb/releases/latest">下載 v0.4.0（133 MB）</a>
+        <a class="btn js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.4.0/SuperWeb-0.4.0-arm64.dmg">下載 v0.4.0（133 MB）</a>
+        <p class="fine"><a href="https://github.com/vins0n88/superweb/releases">所有版本與更新紀錄</a></p>
       </div>
-      <div class="dl-notes">
+      <div class="notes">
         <h3>第一次開啟</h3>
-        <p>目前版本尚未經 Apple 公證。打開時若出現無法驗證開發者的提示，到「系統設定 → 隱私權與安全性」按「強制打開」。</p>
+        <p>這個版本還沒經過 Apple 公證。若出現「無法驗證開發者」，到「系統設定 → 隱私權與安全性」按「強制打開」。</p>
         <h3>模型設定</h3>
-        <p>在設定中選擇 Claude、OpenAI 或 OpenAI 相容服務並填入 API key；或安裝 Ollama 使用本機模型，資料不出你的電腦。正式工作建議使用 Claude。</p>
+        <p>在設定裡選 Claude、OpenAI 或 OpenAI 相容服務並填入 API key；或安裝 Ollama 用本機模型。正式工作建議用 Claude。</p>
         <h3>檔案驗證</h3>
         <p class="hash"><span>SHA-256</span><code>94c01811a9dbf571ccbd81e7f0e7d2f08c6135205d515c9e34ed65fb91282c51</code></p>
       </div>
@@ -198,8 +152,9 @@
 <footer class="foot">
   <div class="wrap foot-row">
     <span>© 2026 SuperAI</span>
-    <a href="https://superai.ky">superai.ky</a>
+    <span class="foot-links"><a href="https://superai.ky">superai.ky</a><a href="https://github.com/vins0n88/superweb">GitHub</a></span>
   </div>
 </footer>
+<script src="main.js"></script>
 </body>
 </html>
