@@ -23,6 +23,8 @@ function fakeSuperai({ sse = false, token = 'slib_ok' } = {}) {
       if (msg.method === 'initialize') result = { protocolVersion: '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'superai-agent', version: '1' } };
       else if (msg.method === 'tools/list') result = { tools: [{ name: 'superai_list_experts' }] };
       else if (msg.params.name === 'superai_list_experts') result = { content: [{ type: 'text', text: '- analyst: 數據分析師\n- writer: 寫手' }] };
+      else if (msg.params.name === 'superai_list_skills') result = { content: [{ type: 'text', text: '- data-analyst: 分析表格' }] };
+      else if (msg.params.name === 'superai_run_skill') result = { content: [{ type: 'text', text: `task_id: t2\nstatus: done\nanswer: 用 ${msg.params.arguments.skill} 分析完成 (${msg.params.arguments.wait_seconds}s)` }] };
       else if (msg.params.name === 'superai_run_task') result = { content: [{ type: 'text', text: `task_id: t1\nstatus: done\nanswer: 已分析 (${msg.params.arguments.wait_seconds}s)` }] };
       else result = { content: [{ type: 'text', text: 'no such task' }], isError: true };
       const reply = JSON.stringify({ jsonrpc: '2.0', id: msg.id, result });
@@ -86,6 +88,9 @@ test('executor: off / no token / not running are clear errors; run_task passes a
     assert.match(await exec('superai_run_task', { prompt: '分析這份表', wait_seconds: 99999 }), /answer: 已分析 \(900s\)/);
     assert.equal(calls.at(-1).params.arguments.prompt, '分析這份表');
     await assert.rejects(exec('superai_get_task', { task_id: 'nope' }), /no such task/);
+    assert.match(await exec('superai_list_skills', {}), /data-analyst/);
+    assert.match(await exec('superai_run_skill', { skill: 'data-analyst', input: '| A | 8,990 |' }), /用 data-analyst 分析完成 \(300s\)/);
+    assert.deepEqual(calls.at(-1).params.arguments, { skill: 'data-analyst', input: '| A | 8,990 |', wait_seconds: 300 });
   } finally {
     server.close();
   }
@@ -101,5 +106,10 @@ test('SuperAI tools: validated, described, never batched, and not re-exported ov
   const gate = createGate({ sites: () => ({ sensitive: [], blocked: [] }), activeUrl: () => 'https://a.test/', inspect: async () => ({}) });
   const v = await gate({ name: 'superai_run_task', input: { prompt: 'x' } }, { allowedDomains: new Set(), recentContent: [] });
   assert.equal(v.action, 'confirm');
-  assert.equal(SUPERAI_TOOL_DEFS.length, 3);
+  const vs = await gate({ name: 'superai_run_skill', input: { skill: 'data-analyst', input: 'x' } }, { allowedDomains: new Set(), recentContent: [] });
+  assert.deepEqual([vs.action, vs.reason], ['confirm', 'Sends this data to SuperAI to run the skill "data-analyst"']);
+  assert.equal(isReadOnly('superai_list_skills'), true);
+  assert.equal(validateInput('superai_run_skill', { skill: 'x' }), 'missing required field "input"');
+  assert.match(describeCall('superai_run_skill', { skill: 'data-analyst', input: '價格表' }), /Run SuperAI skill "data-analyst" on: "價格表"/);
+  assert.equal(SUPERAI_TOOL_DEFS.length, 5);
 });

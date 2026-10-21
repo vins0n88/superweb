@@ -240,6 +240,8 @@ export function describeCall(name, input, label = '') {
     case 'output_table': return `Table: ${input.title}`;
     case 'superai_list_experts': return 'List SuperAI experts';
     case 'superai_run_task': return `Send to SuperAI: "${String(input.prompt ?? '').slice(0, 80)}${String(input.prompt ?? '').length > 80 ? '…' : ''}"`;
+    case 'superai_list_skills': return 'List SuperAI skills';
+    case 'superai_run_skill': return `Run SuperAI skill "${input.skill}" on: "${String(input.input ?? '').slice(0, 60)}${String(input.input ?? '').length > 60 ? '…' : ''}"`;
     case 'superai_get_task': return `Check SuperAI task ${input.task_id}`;
     default: return name;
   }

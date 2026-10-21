@@ -7,7 +7,8 @@
 - **與 SuperAI 雙向調用（MCP）**
   - SuperWeb → SuperAI：「設定 → SuperAI」貼上 SuperAI 的 SuperWeb 連線權杖後，AI 可以列出 SuperAI 專家、把資料交辦給專家並取回結果（`superai_list_experts` / `superai_run_task` / `superai_get_task`）。網址留空會自動找到執行中的 SuperAI。交辦一律單獨批准，不會被「本任務都允許」帶過。
   - SuperAI → SuperWeb：MCP 伺服器新增任務層工具 `run_task` / `get_job` / `list_templates`，SuperAI 可以把整個瀏覽任務（含範本）交給 SuperWeb 背景執行並取回答案、表格與驗證；唯讀工具標記 `readOnlyHint`，對方不必逐次確認。
-  - 需要 SuperAI 分支 `feat/superweb-mcp`（新增 `/mcp/agent` 端點與 SuperWeb 連接器）。
+  - 指定技能：`superai_list_skills` 列出 SuperAI 可用技能，`superai_run_skill` 指定某個技能處理擷取到的資料（交辦前一樣單獨批准，批准卡片寫明技能名稱）。
+  - 需要 SuperAI v0.2.40 以上（`/mcp/agent` 端點與 SuperWeb 連接器）；指定技能需要包含 `superai_run_skill` 的 SuperAI 版本。
 
 ### 改善
 - 價格檢查的程式比對結果標示「以此為準」，模型說法與程式不一致時一看就知道該信哪個。

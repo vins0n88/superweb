@@ -34,6 +34,26 @@ export const SUPERAI_TOOL_DEFS = [
     },
   },
   {
+    name: 'superai_list_skills',
+    description: 'List the skills available in SuperAI (packaged know-how such as data analysis, report or email writing): name and what each does. Use before superai_run_skill.',
+    input_schema: { type: 'object', properties: {} },
+    readOnly: true,
+  },
+  {
+    name: 'superai_run_skill',
+    description: 'Run one specific SuperAI skill (a name from superai_list_skills) on material you provide, such as data you extracted, and get the result. Put everything the skill needs in input (SuperAI cannot see this browser). The user approves this hand-off, and SuperAI may ask them to approve steps too. Returns the result, or a task_id to check later with superai_get_task.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        skill: { type: 'string', description: 'Skill name from superai_list_skills.' },
+        input: { type: 'string', description: 'The material and any extra instructions for the skill.' },
+        expert_id: { type: 'string', description: 'Optional expert id from superai_list_experts.' },
+        wait_seconds: { type: 'integer', description: `How long to wait for the result (default ${DEFAULT_WAIT_S}, max ${MAX_WAIT_S}).` },
+      },
+      required: ['skill', 'input'],
+    },
+  },
+  {
     name: 'superai_get_task',
     description: 'Get the status and answer of a SuperAI task started with superai_run_task.',
     input_schema: {
@@ -160,8 +180,9 @@ export function createSuperaiExecutor(getConfig, { fetchImpl, discover = discove
   }
 
   return async function execute(name, input = {}) {
-    const wait = Math.min(MAX_WAIT_S, Math.max(0, Number(input.wait_seconds ?? (name === 'superai_run_task' ? DEFAULT_WAIT_S : 0)) || 0));
-    const args = { ...input, ...(input.wait_seconds !== undefined || name === 'superai_run_task' ? { wait_seconds: wait } : {}) };
+    const wait = Math.min(MAX_WAIT_S, Math.max(0, Number(input.wait_seconds ?? (name === 'superai_run_task' || name === 'superai_run_skill' ? DEFAULT_WAIT_S : 0)) || 0));
+    const startsTask = name === 'superai_run_task' || name === 'superai_run_skill';
+    const args = { ...input, ...(input.wait_seconds !== undefined || startsTask ? { wait_seconds: wait } : {}) };
     // The remote side holds the request open while it waits for the task.
     const res = await client().callTool(name, args, { timeoutMs: (wait + 30) * 1000 });
     if (res.isError) throw new Error(res.content || 'SuperAI 回報錯誤');
