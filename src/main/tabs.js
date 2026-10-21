@@ -13,12 +13,14 @@ export const AGENT_PARTITION = 'persist:superweb-agent';
 export class TabManager {
   /**
    * @param {import('electron').BrowserWindow} win
-   * @param {{pageScriptPath: string, onChange: (state: object) => void}} opts
+   * @param {{pageScriptPaths: string[], onChange: (state: object) => void, onContextMenu?: (tab: object, params: object) => void}} opts
+   *   pageScriptPaths: the agent page script first, then add-ons that extend window.__superweb
    */
-  constructor(win, { pageScriptPath, onChange }) {
+  constructor(win, { pageScriptPaths, onChange, onContextMenu }) {
     this.win = win;
-    this.pageScript = fs.readFileSync(pageScriptPath, 'utf8');
+    this.pageScript = pageScriptPaths.map((p) => fs.readFileSync(p, 'utf8')).join('\n;\n');
     this.onChange = onChange;
+    this.onContextMenu = onContextMenu;
     this.tabs = new Map();
     this.order = [];
     this.activeId = null;
@@ -56,6 +58,7 @@ export class TabManager {
       tab.favicon = icons[0] || '';
       this.emit();
     });
+    wc.on('context-menu', (_e, params) => this.onContextMenu?.(tab, params));
     wc.setWindowOpenHandler(({ url: target }) => {
       if (/^https?:/.test(target)) this.create(target, { profile: tab.profile, job: tab.job, activate: !tab.job });
       else if (/^mailto:/.test(target)) shell.openExternal(target);

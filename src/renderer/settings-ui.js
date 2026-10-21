@@ -75,6 +75,10 @@ export function initSettings({ api, panel }) {
     $('s-notion-token').value = '';
     $('s-notion-token').placeholder = settings.integrationSecrets.notionToken ? '•••••••• (saved)' : 'secret_…';
     $('s-notion-parent').value = settings.integrations.notion.parent;
+    const langs = await api.translate.languages();
+    $('s-tr-target').replaceChildren(...Object.entries(langs).map(([v, l]) => Object.assign(document.createElement('option'), { value: v, textContent: l })));
+    $('s-tr-target').value = settings.translate.target;
+    $('s-tr-mode').value = settings.translate.mode;
     $('s-superai-enabled').checked = settings.superai.enabled;
     $('s-superai-url').value = settings.superai.url;
     $('s-superai-token').value = '';
@@ -103,6 +107,7 @@ export function initSettings({ api, panel }) {
         google: { clientId: $('s-google-id').value, clientSecret: $('s-google-secret').value },
         notion: { token: $('s-notion-token').value, parent: $('s-notion-parent').value },
       },
+      translate: { target: $('s-tr-target').value, mode: $('s-tr-mode').value },
       superai: { enabled: $('s-superai-enabled').checked, url: $('s-superai-url').value, token: $('s-superai-token').value, ...extra.superai },
     };
     if ($('s-key').value) patch.apiKeys = { [p]: $('s-key').value };

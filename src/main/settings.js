@@ -9,6 +9,7 @@ import { MCP_DEFAULT_PORT, newToken } from './mcp-server.js';
 import { DEFAULT_SENSITIVE_DOMAINS } from './security/policy.js';
 
 const MAX_SITE_ENTRIES = 500;
+const TRANSLATE_TARGETS = ['zh-Hant', 'zh-Hans', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'th', 'vi'];
 
 export const DEFAULTS = {
   provider: 'anthropic',
@@ -23,6 +24,7 @@ export const DEFAULTS = {
   mcp: { enabled: false, port: MCP_DEFAULT_PORT, token: '' },
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
   superai: { enabled: false, url: '' }, // SuperAI integration; url '' = discover the running app (token lives in keys)
+  translate: { target: 'zh-Hant', mode: 'bilingual' }, // live page translation
   homepage: 'https://superai.ky',
   searchTemplate: DEFAULT_SEARCH,
 };
@@ -40,6 +42,7 @@ export class Settings {
         sites: { ...DEFAULTS.sites, ...saved.sites },
         mcp: { ...DEFAULTS.mcp, ...saved.mcp },
         superai: { ...DEFAULTS.superai, ...saved.superai },
+        translate: { ...DEFAULTS.translate, ...saved.translate },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
           notion: { ...DEFAULTS.integrations.notion, ...saved.integrations?.notion },
@@ -116,6 +119,18 @@ export class Settings {
       }
       if (patch.mcp.regenerateToken || (mcp.enabled && !mcp.token)) mcp.token = newToken();
       this.data.mcp = mcp;
+    }
+    if (patch.translate) {
+      const cur = { ...DEFAULTS.translate, ...this.data.translate };
+      if (patch.translate.target !== undefined) {
+        if (!TRANSLATE_TARGETS.includes(patch.translate.target)) throw new Error('unknown translation language');
+        cur.target = patch.translate.target;
+      }
+      if (patch.translate.mode !== undefined) {
+        if (!['bilingual', 'replace'].includes(patch.translate.mode)) throw new Error('invalid translation mode');
+        cur.mode = patch.translate.mode;
+      }
+      this.data.translate = cur;
     }
     if (patch.superai) {
       const cur = { ...DEFAULTS.superai, ...this.data.superai };

@@ -481,3 +481,7 @@ dialog input[type="time"] { height: 32px; padding: 0 10px; border: 1px solid var
 .compare-item span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .export-row { border-top: 1px dashed var(--border); padding-top: 8px; }
 .export-row .rewrite-instruction { flex: 1 1 160px; }
+
+/* v0.5: toolbar toggles that stay lit while on (e.g. live translation) */
+#translate-toggle { font-size: 12px; font-weight: 600; letter-spacing: -0.02em; }
+#translate-toggle.on { background: var(--accent, #7c8cff); color: #fff; }

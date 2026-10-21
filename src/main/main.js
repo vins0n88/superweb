@@ -14,6 +14,7 @@ import { Scheduler } from './scheduler.js';
 import { SkillStore, SkillRecorder, skillToTask } from './skills.js';
 import { buildComparePrompt } from './compare.js';
 import { GoogleSheets, NotionExporter } from './integrations.js';
+import { registerFeatures } from './features.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(here, '..');
@@ -31,6 +32,7 @@ let skills;
 let recorder;
 let sheets;
 let notion;
+let features;
 
 function send(channel, payload) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
@@ -393,8 +395,9 @@ function createWindow() {
   });
 
   tabs = new TabManager(win, {
-    pageScriptPath: path.join(SRC, 'page', 'agent-page.js'),
+    pageScriptPaths: [path.join(SRC, 'page', 'agent-page.js'), path.join(SRC, 'page', 'translate-page.js')],
     onChange: (state) => send('tabs:changed', state),
+    onContextMenu: (tab, params) => features?.contextMenu(tab, params),
   });
 
   win.webContents.on('render-process-gone', (_e, details) => {
@@ -434,6 +437,7 @@ app.whenReady().then(() => {
   });
   host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion() });
   registerIpc();
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send });
   buildMenu();
   createWindow();
   host.syncMcp();

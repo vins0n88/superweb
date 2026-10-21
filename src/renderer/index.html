@@ -22,6 +22,7 @@
     <form id="address-form" autocomplete="off">
       <input id="address" type="text" spellcheck="false" placeholder="Search or enter address" aria-label="Address">
     </form>
+    <button id="translate-toggle" class="icon-btn" title="翻譯此頁（再按一次顯示原文）" aria-label="翻譯此頁" aria-pressed="false">文A</button>
     <button id="toggle-ai" class="pill-btn" title="AI panel (⌘J)" aria-pressed="true">✦ AI</button>
     <button id="open-settings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
   </nav>
@@ -214,6 +215,20 @@
           </div>
           <span class="muted small">MCP calls follow the same security rules and approvals as the side panel.</span>
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>翻譯</legend>
+        <label>翻譯成
+          <select id="s-tr-target"></select>
+        </label>
+        <label>顯示方式
+          <select id="s-tr-mode">
+            <option value="bilingual">雙語對照（譯文顯示在原文下方）</option>
+            <option value="replace">只顯示譯文</option>
+          </select>
+        </label>
+        <span class="muted small">按工具列的「文A」翻譯目前分頁，捲動或載入新內容時會自動繼續翻；選取文字後按右鍵可以只翻譯選取的部分。翻譯使用上方設定的 AI 模型。</span>
       </fieldset>
 
       <fieldset>

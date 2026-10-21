@@ -6,6 +6,7 @@ import { initTemplates, initAudit } from './dialogs.js';
 import { initJobs } from './jobs-ui.js';
 import { initSchedules } from './schedule-ui.js';
 import { initSkills } from './skills-ui.js';
+import { initFeatures } from './features-ui.js';
 
 const api = window.superweb;
 const $ = (id) => document.getElementById(id);
@@ -172,6 +173,7 @@ toggleAi.addEventListener('click', () => {
 initSettings({ api, panel });
 const schedules = initSchedules({ api });
 initSkills({ api, notify: panel.notify });
+initFeatures({ api });
 const templates = initTemplates({ api, panel, onBackground: () => showView('jobs'), onSchedule: (prefill) => schedules.open(prefill) });
 const auditLog = initAudit({ api });
 

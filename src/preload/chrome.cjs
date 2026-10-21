@@ -107,5 +107,11 @@ contextBridge.exposeInMainWorld('superweb', {
   superai: {
     test: invoke('superai:test'),
   },
+  translate: {
+    toggle: invoke('translate:toggle'),
+    state: invoke('translate:state'),
+    languages: invoke('translate:languages'),
+    onChanged: on('translate:changed'),
+  },
   onShortcut: on('shortcut'),
 });
