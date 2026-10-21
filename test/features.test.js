@@ -207,13 +207,18 @@ test('page: F1.1 highlight cited blocks; F1.2 rewrite replaces the saved field s
   assert.throws(() => w.__superweb.replaceSelection('again'), /no saved selection/);
 });
 
-test('empty model replies are nudged once, then reported instead of ending silently', async () => {
+test('empty model replies are nudged twice (the second time toward the plan), then reported instead of ending silently', async () => {
   const nudged = agentWith([{ empty: true }, { toolCalls: [{ id: 'r', name: 'read_page', input: {} }] }, {}]);
   await nudged.agent.run('x');
   assert.match(nudged.inputs[1], /last reply was empty/);
-  const failing = agentWith([{ empty: true }, { empty: true }]);
+  const recovered = agentWith([{ empty: true }, { empty: true }, {}]);
+  await recovered.agent.run('x');
+  assert.match(recovered.inputs[2], /empty again\. Look at the approved plan/);
+  assert.equal(recovered.events.at(-1).type, 'done');
+  const failing = agentWith([{ empty: true }, { empty: true }, { empty: true }]);
   await failing.agent.run('x');
   assert.equal(failing.events.at(-1).type, 'error');
+  assert.match(failing.events.at(-1).message, /empty response 3 times/);
 });
 
 test('tool calls written as text are detected and nudged once', async () => {

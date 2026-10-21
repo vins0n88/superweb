@@ -1,6 +1,6 @@
 {
   "name": "superweb",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "AI browser: structure-first page understanding with a multi-provider AI side panel",
   "private": true,
   "type": "module",
@@ -16,13 +16,13 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
     "ethers": "6.17.0",
-    "exceljs": "^4.4.0",
+    "exceljs": "4.4.0",
     "imapflow": "2.2.6",
     "mailparser": "3.9.36",
-    "mammoth": "^1.13.0",
+    "mammoth": "1.13.0",
     "nodemailer": "10.0.15",
     "openai": "^7.34.0",
-    "pdfjs-dist": "^6.4.299"
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "electron": "^44.8.0",

@@ -44,6 +44,8 @@ function readable(value) {
 }
 
 const EMPTY_NUDGE = 'Your last reply was empty. Continue the task: call the tools you need, or give your final answer.';
+const EMPTY_NUDGE_PLAN = 'Your reply was empty again. Look at the approved plan and the last tool result, then do the next step now (one tool call), or give your final answer if every step is done.';
+const MAX_EMPTY_NUDGES = 2;
 const TAKEOVER_NOTE = '[Note: the user paused the agent and may have changed the page manually. Take a fresh snapshot before using refs.]';
 const pageChangedNote = (from, to) => `[Note: while you were paused, the user switched the active tab from ${from} to ${to}. Everything you read before is stale. Call read_page (or snapshot) on the page that is open now before you answer or act.]`;
 const REREAD_NUDGE = 'The user changed the page while you were paused and you have not read the new page yet. Call read_page now, then answer about the page that is open now.';
@@ -273,14 +275,14 @@ export class Agent {
             turn = { userText: VERIFY_PROMPT };
             continue;
           }
-          // Never end silently on an empty model reply: nudge once, then report it.
+          // Never end silently on an empty model reply: nudge (twice, the second time pointing at the plan), then report it.
           if (!result.text.trim() && !verifyRequested) {
-            if (++emptyReplies <= 1) {
-              turn = { userText: EMPTY_NUDGE };
+            if (++emptyReplies <= MAX_EMPTY_NUDGES) {
+              turn = { userText: emptyReplies === 1 ? EMPTY_NUDGE : EMPTY_NUDGE_PLAN };
               continue;
             }
             outcome = 'error';
-            emit({ type: 'error', message: 'The model returned an empty response twice. Try again or switch models in Settings.' });
+            emit({ type: 'error', message: `The model returned an empty response ${emptyReplies} times. Try again or switch models in Settings.` });
             return;
           }
           // F2.4: verification found work left undone that the model can still do → one more pass.
