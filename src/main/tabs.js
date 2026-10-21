@@ -152,7 +152,7 @@ export class TabManager {
   layout() {
     const tab = this.active();
     if (!tab) return;
-    tab.view.setBounds(this.bounds);
+    tab.view.setBounds(tab.fit ? tab.fit(this.bounds) : this.bounds); // game mode letterboxes a phone screen
     tab.view.setVisible(!this.hidden);
   }
 

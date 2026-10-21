@@ -11,6 +11,7 @@ import { createTranslator, LANGUAGES } from './translate.js';
 import { DOC_TYPES, MAX_FILE_BYTES } from './documents.js';
 import { APP_SCHEME, createAppRouter, createMediaRegistry, serveApps } from './apps.js';
 import { createPlayer } from './player.js';
+import { createGameMode } from './game.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
@@ -70,6 +71,20 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     if (win) Menu.buildFromTemplate(Object.entries(APPS).map(([name, a]) => ({ label: `${a.icon}  ${a.title}`, click: () => openApp(name) }))).popup({ window: win });
   });
   router.register('player', createPlayer({ dir: dataDir, media, getTabs, pickFiles: (opts) => dialog.showOpenDialog(getWin(), opts) }));
+
+  // ---- H5 game mode ----
+  const game = createGameMode({ getTabs, getWin, send });
+  ipcMain.handle('game:state', () => game.state());
+  ipcMain.handle('game:update', (_e, patch = {}) => {
+    const tab = getTabs().active();
+    return tab ? game.update(tab.id, { ...(patch.fullscreen !== undefined ? { fullscreen: Boolean(patch.fullscreen) } : {}), ...(patch.device ? { device: String(patch.device) } : {}), ...(patch.muted !== undefined ? { muted: Boolean(patch.muted) } : {}) }) : null;
+  });
+  ipcMain.handle('game:menu', () => {
+    const win = getWin();
+    const tab = getTabs().active();
+    if (!win || !tab || tab.app) return;
+    Menu.buildFromTemplate(game.menuTemplate(tab.id)).popup({ window: win });
+  });
 
   // ---- Document AI analysis ----
   const docResult = async (fn) => {

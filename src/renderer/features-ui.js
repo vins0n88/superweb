@@ -18,6 +18,18 @@ export function initFeatures({ api }) {
     await api.translate.toggle(activeId);
   });
   document.getElementById('open-apps').addEventListener('click', () => api.apps.menu());
+
+  // H5 game mode: hide the browser chrome while the active tab plays full-window.
+  const gameBtn = document.getElementById('game-menu');
+  let game = {};
+  const renderGame = () => {
+    const g = game[activeId];
+    document.body.classList.toggle('game', Boolean(g?.fullscreen));
+    gameBtn.classList.toggle('on', Boolean(g && (g.fullscreen || g.device !== 'off' || g.muted)));
+  };
+  gameBtn.addEventListener('click', () => api.game.menu());
+  api.game.onChanged((s) => { game = s; renderGame(); });
+  api.tabs.onChanged((s) => { activeId = s.activeId; renderGame(); });
   api.tabs.onChanged((s) => {
     activeId = s.activeId;
     render();
