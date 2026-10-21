@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>行動日曆</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="calendar.css">
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <h1>📅 <span id="period"></span></h1>
+    <div class="seg" role="tablist" aria-label="檢視">
+      <button class="btn" data-view="day" role="tab">今日</button>
+      <button class="btn" data-view="week" role="tab">週</button>
+      <button class="btn" data-view="month" role="tab">月</button>
+      <button class="btn" data-view="timetable" role="tab">課程表</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="prev" aria-label="上一段">‹</button>
+      <button class="btn" id="today">今天</button>
+      <button class="btn" id="next" aria-label="下一段">›</button>
+    </div>
+    <button class="btn primary" id="add-event">＋ 活動</button>
+    <button class="btn" id="import">匯入 .ics</button>
+    <button class="btn" id="export">匯出 .ics</button>
+  </div>
+  <p id="msg" class="small muted" hidden></p>
+  <main id="view" class="card"></main>
+</div>
+
+<dialog id="event-dlg">
+  <form id="event-form" method="dialog" class="form">
+    <h2 id="event-title">新增活動</h2>
+    <label>標題<input name="title" required maxlength="200"></label>
+    <label class="check"><input type="checkbox" name="allDay"> 整天</label>
+    <div class="two">
+      <label>開始<input name="start" type="datetime-local" required></label>
+      <label>結束<input name="end" type="datetime-local"></label>
+    </div>
+    <label>地點<input name="location" maxlength="200"></label>
+    <div class="two">
+      <label>重複
+        <select name="repeat"><option value="none">不重複</option><option value="daily">每天</option><option value="weekly">每週</option><option value="monthly">每月</option></select>
+      </label>
+      <label>重複到<input name="until" type="date"></label>
+    </div>
+    <label>提醒
+      <select name="remind"><option value="-1">不提醒</option><option value="0">開始時</option><option value="5">5 分鐘前</option><option value="10" selected>10 分鐘前</option><option value="30">30 分鐘前</option><option value="60">1 小時前</option><option value="1440">1 天前</option></select>
+    </label>
+    <label>備註<textarea name="notes" rows="3" maxlength="4000"></textarea></label>
+    <p class="error small" id="event-err" hidden></p>
+    <div class="actions">
+      <button type="button" class="btn" id="event-delete" hidden>刪除</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" value="cancel" id="event-cancel">取消</button>
+      <button type="submit" class="btn primary">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="course-dlg">
+  <form id="course-form" method="dialog" class="form">
+    <h2 id="course-title">新增課程</h2>
+    <label>課程名稱<input name="name" required maxlength="120"></label>
+    <div class="two">
+      <label>星期
+        <select name="weekday"><option value="1">週一</option><option value="2">週二</option><option value="3">週三</option><option value="4">週四</option><option value="5">週五</option><option value="6">週六</option><option value="7">週日</option></select>
+      </label>
+      <label>教室<input name="room" maxlength="80"></label>
+    </div>
+    <div class="two">
+      <label>上課<input name="start" type="time" required></label>
+      <label>下課<input name="end" type="time" required></label>
+    </div>
+    <label>老師<input name="teacher" maxlength="80"></label>
+    <p class="error small" id="course-err" hidden></p>
+    <div class="actions">
+      <button type="button" class="btn" id="course-delete" hidden>刪除</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="course-cancel">取消</button>
+      <button type="submit" class="btn primary">儲存</button>
+    </div>
+  </form>
+</dialog>
+<script src="calendar.js" type="module"></script>
+</body>
+</html>

@@ -15,6 +15,7 @@ import { createGameMode } from './game.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
+  calendar: { title: '行動日曆・課程表', icon: '📅' },
   player: { title: '影音播放器', icon: '▶' },
 };
 
@@ -28,7 +29,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, dataDir, srcDir }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, dataDir, srcDir }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -71,6 +72,31 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     if (win) Menu.buildFromTemplate(Object.entries(APPS).map(([name, a]) => ({ label: `${a.icon}  ${a.title}`, click: () => openApp(name) }))).popup({ window: win });
   });
   router.register('player', createPlayer({ dir: dataDir, media, getTabs, pickFiles: (opts) => dialog.showOpenDialog(getWin(), opts) }));
+
+  // ---- Calendar & timetable ----
+  calendar.onChange(() => router.emit('calendar', 'changed'));
+  setInterval(() => calendar.tick(), 30000).unref?.();
+  router.register('calendar', {
+    state: () => calendar.state(),
+    range: (from, to) => calendar.range(from, to),
+    addEvent: (ev) => calendar.addEvent(ev),
+    updateEvent: (id, ev) => calendar.updateEvent(id, ev),
+    removeEvent: (id) => calendar.removeEvent(id),
+    saveCourse: (c) => calendar.saveCourse(c),
+    removeCourse: (id) => calendar.removeCourse(id),
+    setTerm: (t) => calendar.setTerm(t),
+    async importIcs() {
+      const res = await dialog.showOpenDialog(getWin(), { title: '匯入日曆（.ics）', properties: ['openFile'], filters: [{ name: 'iCalendar', extensions: ['ics'] }] });
+      if (res.canceled) return 0;
+      return calendar.importIcs(await fs.readFile(res.filePaths[0], 'utf8'));
+    },
+    async exportIcs() {
+      const res = await dialog.showSaveDialog(getWin(), { title: '匯出日曆', defaultPath: 'SuperWeb-日曆.ics', filters: [{ name: 'iCalendar', extensions: ['ics'] }] });
+      if (res.canceled || !res.filePath) return '';
+      await fs.writeFile(res.filePath, calendar.exportIcs());
+      return res.filePath;
+    },
+  });
 
   // ---- H5 game mode ----
   const game = createGameMode({ getTabs, getWin, send });

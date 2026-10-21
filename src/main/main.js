@@ -16,6 +16,7 @@ import { buildComparePrompt } from './compare.js';
 import { GoogleSheets, NotionExporter } from './integrations.js';
 import { registerFeatures } from './features.js';
 import { createDocumentStore } from './documents.js';
+import { createCalendar } from './calendar.js';
 import { registerAppScheme, isAppUrl, appNameOf } from './apps.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -441,9 +442,10 @@ app.whenReady().then(() => {
     onStep: (count) => send('skills:recording', { recording: true, steps: count }),
   });
   const documents = createDocumentStore({ onChange: (list) => send('docs:changed', list) });
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents });
+  const calendar = createCalendar({ dir: app.getPath('userData'), notify });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, dataDir: app.getPath('userData'), srcDir: SRC, notify });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, dataDir: app.getPath('userData'), srcDir: SRC, notify });
   buildMenu();
   createWindow();
   host.syncMcp();

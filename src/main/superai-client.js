@@ -22,6 +22,7 @@ export const SUPERAI_TOOL_DEFS = [
   },
   {
     name: 'superai_run_task',
+    noPlan: true,
     description: 'Hand a task to SuperAI (the user\'s AI work app with experts, skills, files, and documents), e.g. analysing data you extracted, writing a report, or saving results to the user\'s documents. Put everything SuperAI needs in the prompt (it cannot see this browser). The user approves this hand-off, and SuperAI may ask them to approve steps too. Returns SuperAI\'s answer, or a task_id to check later with superai_get_task.',
     input_schema: {
       type: 'object',
@@ -41,6 +42,7 @@ export const SUPERAI_TOOL_DEFS = [
   },
   {
     name: 'superai_run_skill',
+    noPlan: true,
     description: 'Run one specific SuperAI skill (a name from superai_list_skills) on material you provide, such as data you extracted, and get the result. Put everything the skill needs in input (SuperAI cannot see this browser). The user approves this hand-off, and SuperAI may ask them to approve steps too. Returns the result, or a task_id to check later with superai_get_task.',
     input_schema: {
       type: 'object',

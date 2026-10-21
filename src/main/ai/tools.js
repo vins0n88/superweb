@@ -5,6 +5,7 @@
 import { normalizeInput } from '../url.js';
 import { SUPERAI_TOOL_DEFS } from '../superai-client.js';
 import { DOC_TOOL_DEFS } from '../documents.js';
+import { CALENDAR_TOOL_DEFS } from '../calendar.js';
 
 const ref = { type: 'integer', description: 'Element ref number from the latest snapshot, e.g. 12 for [12]' };
 
@@ -167,7 +168,7 @@ export const TOOL_DEFS = [
 ];
 
 // SuperAI tools are offered to the model only while the SuperAI connection is on (agent-host).
-const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS].map((d) => [d.name, d]));
+const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS].map((d) => [d.name, d]));
 
 export function isInternal(name) {
   return Boolean(DEFS_BY_NAME.get(name)?.internal);
@@ -181,6 +182,12 @@ export function wrapUntrusted(text, url) {
 
 export function isReadOnly(name) {
   return Boolean(DEFS_BY_NAME.get(name)?.readOnly);
+}
+
+/** F2.2: a plan is required before acting on web pages; app actions (calendar, SuperAI) ask for approval on their own. */
+export function needsPlan(name) {
+  const def = DEFS_BY_NAME.get(name);
+  return Boolean(def) && !def.readOnly && !def.noPlan;
 }
 
 /** Minimal JSON-Schema check for the flat object schemas above. */
@@ -242,6 +249,8 @@ export function describeCall(name, input, label = '') {
     case 'superai_list_experts': return 'List SuperAI experts';
     case 'superai_run_task': return `Send to SuperAI: "${String(input.prompt ?? '').slice(0, 80)}${String(input.prompt ?? '').length > 80 ? '…' : ''}"`;
     case 'read_document': return input.query ? `Search document D${input.id} for "${input.query}"` : `Read document D${input.id}${input.from > 1 ? ` from section ${input.from}` : ''}`;
+    case 'list_calendar': return `Check calendar ${input.from} – ${input.to}`;
+    case 'add_calendar_event': return `Add to calendar: "${input.title}" ${String(input.start ?? '').replace('T', ' ')}`;
     case 'superai_list_skills': return 'List SuperAI skills';
     case 'superai_run_skill': return `Run SuperAI skill "${input.skill}" on: "${String(input.input ?? '').slice(0, 60)}${String(input.input ?? '').length > 60 ? '…' : ''}"`;
     case 'superai_get_task': return `Check SuperAI task ${input.task_id}`;

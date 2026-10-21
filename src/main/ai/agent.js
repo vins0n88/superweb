@@ -2,7 +2,7 @@
 // → run tools → feed results back, until the model stops or a limit is hit.
 // Supports plan preview (F2.2) and pause / takeover / resume (F2.3).
 
-import { isReadOnly, isInternal, validateInput } from './tools.js';
+import { isReadOnly, isInternal, validateInput, needsPlan } from './tools.js';
 import { createTask, runGuardedTool } from './guard.js';
 import { domainsInText } from '../security/policy.js';
 
@@ -347,7 +347,7 @@ export class Agent {
     const { emit } = this.deps;
     if (!call.parseError && isInternal(call.name)) return this.handleInternal(call, task);
 
-    if (!call.parseError && !isReadOnly(call.name) && this.deps.requirePlan?.() && !task.planApproved) {
+    if (!call.parseError && needsPlan(call.name) && this.deps.requirePlan?.() && !task.planApproved) {
       const content = 'No approved plan yet. Call propose_plan with your steps first, then continue.';
       emit({ type: 'tool', id: call.id, name: call.name, summary: call.name, status: 'error', result: content });
       return { id: call.id, content, isError: true };
