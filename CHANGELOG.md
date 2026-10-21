@@ -1,6 +1,8 @@
 # SuperWeb 更新紀錄
 
-## 未發佈
+## v0.4.1（2026-10-21）
+
+**測試**：122 個單元測試全過；e2e 實機測試 14/14 通過（本機 Ollama gpt-oss:20b）；SuperWeb ⇄ SuperAI 雙向（含指定技能）實機驗證通過。安裝檔：`SuperWeb-0.4.1-arm64.dmg`（SHA-256 `d06ba10e3b415decc306b56f35e11682fedf376705c69c3ba4adf91763317b53`）。
 
 ### 新增
 - **官方網站**（`site/`，GitHub Pages 自動發布）：首頁可互動的任務示範（比價、批量填表、降價通知、附引用研究），十個範本、SuperWeb × SuperAI 協作、隱私與安全規則、下載與首次開啟說明；支援手機與深色模式。
@@ -8,7 +10,7 @@
   - SuperWeb → SuperAI：「設定 → SuperAI」貼上 SuperAI 的 SuperWeb 連線權杖後，AI 可以列出 SuperAI 專家、把資料交辦給專家並取回結果（`superai_list_experts` / `superai_run_task` / `superai_get_task`）。網址留空會自動找到執行中的 SuperAI。交辦一律單獨批准，不會被「本任務都允許」帶過。
   - SuperAI → SuperWeb：MCP 伺服器新增任務層工具 `run_task` / `get_job` / `list_templates`，SuperAI 可以把整個瀏覽任務（含範本）交給 SuperWeb 背景執行並取回答案、表格與驗證；唯讀工具標記 `readOnlyHint`，對方不必逐次確認。
   - 指定技能：`superai_list_skills` 列出 SuperAI 可用技能，`superai_run_skill` 指定某個技能處理擷取到的資料（交辦前一樣單獨批准，批准卡片寫明技能名稱）。
-  - 需要 SuperAI v0.2.40 以上（`/mcp/agent` 端點與 SuperWeb 連接器）；指定技能需要包含 `superai_run_skill` 的 SuperAI 版本。
+  - 需要 SuperAI v0.2.40 以上（`/mcp/agent` 端點與 SuperWeb 連接器）；指定技能需要 SuperAI v0.2.42 以上。
 
 ### 改善
 - 價格檢查的程式比對結果標示「以此為準」，模型說法與程式不一致時一看就知道該信哪個。
