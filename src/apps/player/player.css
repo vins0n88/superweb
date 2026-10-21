@@ -1,0 +1,11 @@
+.layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.stage { display: grid; gap: 12px; }
+video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; }
+.audio-art { aspect-ratio: 16 / 9; display: grid; place-items: center; font-size: 72px; border-radius: 8px; background: linear-gradient(135deg, var(--accent-soft), var(--alt)); }
+.audio-art[hidden] { display: none; }
+.stage.audio video { aspect-ratio: auto; height: 54px; background: transparent; }
+.now { display: flex; gap: 8px; align-items: baseline; font-weight: 600; }
+.controls select { padding: 5px 8px; }
+#playlist { max-height: 520px; overflow: auto; }
+.kind { width: 1.5em; text-align: center; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }

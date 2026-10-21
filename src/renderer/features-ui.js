@@ -17,6 +17,7 @@ export function initFeatures({ api }) {
   btn.addEventListener('click', async () => {
     await api.translate.toggle(activeId);
   });
+  document.getElementById('open-apps').addEventListener('click', () => api.apps.menu());
   api.tabs.onChanged((s) => {
     activeId = s.activeId;
     render();

@@ -3,11 +3,19 @@
 // Each feature lives in its own module; this file only connects them.
 
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { Menu, clipboard, dialog } from 'electron';
 import { createSession } from './ai/providers/index.js';
 import { siteTier } from './security/policy.js';
 import { createTranslator, LANGUAGES } from './translate.js';
 import { DOC_TYPES, MAX_FILE_BYTES } from './documents.js';
+import { APP_SCHEME, createAppRouter, createMediaRegistry, serveApps } from './apps.js';
+import { createPlayer } from './player.js';
+
+/** Built-in tool pages, in launcher order. */
+export const APPS = {
+  player: { title: '影音播放器', icon: '▶' },
+};
 
 /**
  * @param {object} deps
@@ -19,7 +27,7 @@ import { DOC_TYPES, MAX_FILE_BYTES } from './documents.js';
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, dataDir, srcDir }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -41,6 +49,27 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
   ipcMain.handle('translate:toggle', (_e, tabId) => translator.toggle(Number(tabId) || getTabs().activeId));
   ipcMain.handle('translate:state', () => translator.state());
   ipcMain.handle('translate:languages', () => LANGUAGES);
+
+  // ---- Built-in tool pages (superweb://…) ----
+  const media = createMediaRegistry();
+  serveApps({ appsDir: path.join(srcDir, 'apps'), media, apps: APPS });
+  const router = createAppRouter({ ipcMain, getTabs });
+  /** Opens an app, reusing its tab when one is already open. */
+  function openApp(name) {
+    if (!APPS[name]) return '';
+    const tabs = getTabs();
+    const open = [...tabs.tabs.values()].find((t) => t.app === name);
+    if (open) tabs.activate(open.id);
+    else tabs.create(`${APP_SCHEME}://${name}/`);
+    return `${APP_SCHEME}://${name}/`;
+  }
+  ipcMain.handle('apps:list', () => APPS);
+  ipcMain.handle('apps:open', (_e, name) => openApp(String(name)));
+  ipcMain.handle('apps:menu', () => {
+    const win = getWin();
+    if (win) Menu.buildFromTemplate(Object.entries(APPS).map(([name, a]) => ({ label: `${a.icon}  ${a.title}`, click: () => openApp(name) }))).popup({ window: win });
+  });
+  router.register('player', createPlayer({ dir: dataDir, media, getTabs, pickFiles: (opts) => dialog.showOpenDialog(getWin(), opts) }));
 
   // ---- Document AI analysis ----
   const docResult = async (fn) => {
@@ -99,5 +128,5 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     if (win) Menu.buildFromTemplate(items).popup({ window: win });
   }
 
-  return { contextMenu, translator };
+  return { contextMenu, translator, openApp, router };
 }

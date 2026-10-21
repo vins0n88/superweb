@@ -7,7 +7,8 @@ import { execFileSync } from 'node:child_process';
 // Renderer and page scripts are not imported by unit tests, so a syntax error there
 // would only show up in the running app (as a dead UI). Check every file.
 const root = new URL('..', import.meta.url).pathname;
-const files = ['src/renderer', 'src/page', 'src/preload', 'src/main', 'src/main/ai', 'src/main/ai/providers', 'src/main/security', 'e2e']
+const appDirs = fs.readdirSync(path.join(root, 'src/apps')).filter((d) => !d.startsWith('.')).map((d) => `src/apps/${d}`);
+const files = ['src/renderer', 'src/page', 'src/preload', 'src/main', 'src/main/ai', 'src/main/ai/providers', 'src/main/security', 'e2e', ...appDirs]
   .flatMap((dir) => fs.readdirSync(path.join(root, dir)).filter((f) => /\.(m?js|cjs)$/.test(f)).map((f) => path.join(dir, f)));
 
 test('every source file parses', () => {

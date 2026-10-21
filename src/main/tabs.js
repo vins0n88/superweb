@@ -3,6 +3,7 @@
 
 import fs from 'node:fs';
 import { WebContentsView, shell } from 'electron';
+import { appNameOf, isAppUrl } from './apps.js';
 
 const LOAD_TIMEOUT_MS = 15000;
 const SETTLE_MS = 400;
@@ -13,10 +14,12 @@ export const AGENT_PARTITION = 'persist:superweb-agent';
 export class TabManager {
   /**
    * @param {import('electron').BrowserWindow} win
-   * @param {{pageScriptPaths: string[], onChange: (state: object) => void, onContextMenu?: (tab: object, params: object) => void}} opts
+   * @param {{pageScriptPaths: string[], appPreload: string, onChange: (state: object) => void, onContextMenu?: (tab: object, params: object) => void}} opts
    *   pageScriptPaths: the agent page script first, then add-ons that extend window.__superweb
+   *   appPreload: bridge for built-in app pages (superweb://…), given only to tabs opened as apps
    */
-  constructor(win, { pageScriptPaths, onChange, onContextMenu }) {
+  constructor(win, { pageScriptPaths, appPreload, onChange, onContextMenu }) {
+    this.appPreload = appPreload;
     this.win = win;
     this.pageScript = pageScriptPaths.map((p) => fs.readFileSync(p, 'utf8')).join('\n;\n');
     this.onChange = onChange;
@@ -32,14 +35,23 @@ export class TabManager {
   /** @param {{activate?: boolean, profile?: 'default'|'agent', job?: string}} [opts] job: owning background job */
   create(url, { activate = true, profile = 'default', job = '' } = {}) {
     const id = this.nextId++;
+    const app = appNameOf(url);
     const view = new WebContentsView({
       webPreferences: {
         sandbox: true, contextIsolation: true, nodeIntegration: false,
-        ...(profile === 'agent' ? { partition: AGENT_PARTITION } : {}),
+        ...(app ? { preload: this.appPreload, backgroundThrottling: false } : profile === 'agent' ? { partition: AGENT_PARTITION } : {}),
       },
     });
     const wc = view.webContents;
-    const tab = { id, view, title: 'New Tab', url, loading: true, favicon: '', profile, job };
+    const tab = { id, view, title: 'New Tab', url, loading: true, favicon: '', profile: app ? 'default' : profile, job, app };
+    // App tabs stay on their app; web pages can never navigate into an app (it would lack its bridge anyway).
+    const guard = (e, target) => {
+      if (app ? appNameOf(target) === app : !isAppUrl(target)) return;
+      e.preventDefault();
+      if (app && /^https?:/i.test(target)) this.create(target);
+    };
+    wc.on('will-navigate', guard);
+    wc.on('will-frame-navigate', (e) => { if (!app && isAppUrl(e.url)) e.preventDefault(); });
     this.tabs.set(id, tab);
     this.order.push(id);
 
@@ -77,6 +89,7 @@ export class TabManager {
     if (!this.tabs.has(id)) return false;
     for (const tab of this.tabs.values()) tab.view.setVisible(false);
     this.activeId = id;
+    if (!this.tabs.get(id).app) this.lastWebId = id; // tools like the player act on the last web page you looked at
     this.tabs.get(id).job = ''; // a background tab the user opens becomes an ordinary tab view
     this.layout();
     this.emit();
@@ -101,6 +114,12 @@ export class TabManager {
 
   active() {
     return this.tabs.get(this.activeId) ?? null;
+  }
+
+  /** The web page tab the user looked at most recently (not a built-in app tab). */
+  lastWebTab() {
+    const t = this.tabs.get(this.lastWebId);
+    return t && !t.app ? t : null;
   }
 
   get(id) {
@@ -144,7 +163,7 @@ export class TabManager {
         const t = this.tabs.get(id);
         const wc = t.view.webContents;
         return {
-          id, title: t.title, url: t.url, loading: t.loading, favicon: t.favicon, profile: t.profile, job: t.job,
+          id, title: t.title, url: t.url, loading: t.loading, favicon: t.favicon, profile: t.profile, job: t.job, app: t.app,
           canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(),
         };
       }),
@@ -182,7 +201,7 @@ export class TabManager {
     const wc = tab.view.webContents;
     if (wc.isLoading()) await this.waitForLoad(wc);
     const call = `${this.pageScript}
-;(() => { try { return { ok: true, value: window.__superweb.${fn}(...${JSON.stringify(args)}) }; }
+;(async () => { try { return { ok: true, value: await window.__superweb.${fn}(...${JSON.stringify(args)}) }; }
   catch (e) { return { ok: false, error: String(e && e.message || e) }; } })()`;
     let res;
     try {

@@ -37,6 +37,7 @@ export function matchesSite(url, entry) {
 
 /** S5: classify a URL as general / sensitive / blocked. */
 export function siteTier(url, { sensitive = [], blocked = [] } = {}) {
+  if (/^superweb:/i.test(String(url))) return 'blocked'; // built-in tool pages (wallet, mail, …) are never automated
   if (blocked.some((e) => matchesSite(url, e))) return 'blocked';
   if ([...DEFAULT_SENSITIVE_DOMAINS, ...sensitive].some((e) => matchesSite(url, e))) return 'sensitive';
   return 'general';

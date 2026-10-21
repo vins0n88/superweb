@@ -16,12 +16,14 @@ import { buildComparePrompt } from './compare.js';
 import { GoogleSheets, NotionExporter } from './integrations.js';
 import { registerFeatures } from './features.js';
 import { createDocumentStore } from './documents.js';
+import { registerAppScheme, isAppUrl, appNameOf } from './apps.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(here, '..');
 const ICON = path.join(SRC, '..', 'assets', 'icon.png');
 
 app.setName('SuperWeb');
+registerAppScheme();
 
 let win;
 let tabs;
@@ -96,6 +98,7 @@ function registerIpc() {
   ipcMain.handle('tabs:bounds', (_e, bounds) => tabs.setBounds(bounds));
   ipcMain.handle('tabs:hidden', (_e, hidden) => tabs.setHidden(Boolean(hidden)));
   ipcMain.handle('nav:go', (_e, input) => {
+    if (isAppUrl(String(input).trim())) return features.openApp(appNameOf(String(input).trim()));
     const url = normalizeInput(input, settings.data.searchTemplate);
     const tab = tabs.active();
     if (tab) tab.view.webContents.loadURL(url).catch(() => {});
@@ -396,7 +399,8 @@ function createWindow() {
   });
 
   tabs = new TabManager(win, {
-    pageScriptPaths: [path.join(SRC, 'page', 'agent-page.js'), path.join(SRC, 'page', 'translate-page.js')],
+    pageScriptPaths: [path.join(SRC, 'page', 'agent-page.js'), path.join(SRC, 'page', 'translate-page.js'), path.join(SRC, 'page', 'media-page.js')],
+    appPreload: path.join(SRC, 'preload', 'app.cjs'),
     onChange: (state) => send('tabs:changed', state),
     onContextMenu: (tab, params) => features?.contextMenu(tab, params),
   });
@@ -439,7 +443,7 @@ app.whenReady().then(() => {
   const documents = createDocumentStore({ onChange: (list) => send('docs:changed', list) });
   host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, agent: host.agent });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, dataDir: app.getPath('userData'), srcDir: SRC, notify });
   buildMenu();
   createWindow();
   host.syncMcp();

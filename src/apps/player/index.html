@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>影音播放器</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <h1>▶ 影音播放器</h1>
+    <button class="btn primary" id="pick">＋ 加入檔案</button>
+    <form id="url-form" class="row">
+      <input id="url" type="url" placeholder="或貼上影音網址（.mp3、.mp4…）" size="32">
+      <button class="btn" type="submit">加入</button>
+    </form>
+  </div>
+
+  <div class="layout">
+    <section class="card stage">
+      <div class="audio-art" id="art" hidden>♪</div>
+      <video id="video" controls playsinline></video>
+      <div class="now">
+        <div class="grow" id="now-title">還沒有選擇曲目</div>
+        <span class="muted small" id="now-meta"></span>
+      </div>
+      <div class="row controls">
+        <button class="btn" id="prev" title="上一首（P）">⏮</button>
+        <button class="btn primary" id="play" title="播放／暫停（空白鍵）">▶</button>
+        <button class="btn" id="next" title="下一首（N）">⏭</button>
+        <button class="btn" id="shuffle" title="隨機播放">🔀</button>
+        <button class="btn" id="repeat" title="重複：關閉">🔁</button>
+        <select id="rate" title="播放速度">
+          <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+        </select>
+        <button class="btn" id="pip" title="子母畫面">⧉</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row"><h2 class="grow">播放清單 <span class="muted small" id="count"></span></h2><button class="btn small" id="clear">清空</button></div>
+      <ul class="list" id="playlist"></ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="row"><h2 class="grow">目前網頁的影音 <span class="muted small" id="page-title"></span></h2><button class="btn small" id="scan">重新整理</button></div>
+    <ul class="list" id="page-media"></ul>
+    <p class="muted small">串流網站（例如 YouTube）的影片無法搬進播放清單，但可以在這裡播放／暫停或開子母畫面。</p>
+  </section>
+</div>
+<script src="player.js" type="module"></script>
+</body>
+</html>
