@@ -12,10 +12,12 @@ import { DOC_TYPES, MAX_FILE_BYTES } from './documents.js';
 import { APP_SCHEME, createAppRouter, createMediaRegistry, serveApps } from './apps.js';
 import { createPlayer } from './player.js';
 import { createGameMode } from './game.js';
+import { createMail } from './mail.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
   calendar: { title: '行動日曆・課程表', icon: '📅' },
+  mail: { title: '郵箱', icon: '✉' },
   player: { title: '影音播放器', icon: '▶' },
 };
 
@@ -29,7 +31,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, dataDir, srcDir }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, dataDir, srcDir, notify }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -97,6 +99,52 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
       return res.filePath;
     },
   });
+
+  // ---- Mail ----
+  const ask = async (system, user) => {
+    const res = await newSession({ system }).step({ userText: user });
+    if (res.stop === 'refusal') throw new Error('模型拒絕處理這封信');
+    return res.text.trim();
+  };
+  const mailLibs = {}; // loaded on first use so startup stays fast
+  const mail = createMail({
+    dir: dataDir,
+    secrets: settings,
+    imapClient: (cfg) => new (mailLibs.ImapFlow)(cfg),
+    smtpClient: (cfg) => mailLibs.nodemailer.createTransport(cfg),
+    parse: (source) => mailLibs.simpleParser(source),
+    ask,
+    notify,
+  });
+  const loadMailLibs = async () => {
+    if (mailLibs.ImapFlow) return;
+    [{ ImapFlow: mailLibs.ImapFlow }, { default: mailLibs.nodemailer }, { simpleParser: mailLibs.simpleParser }] = await Promise.all([import('imapflow'), import('nodemailer'), import('mailparser')]);
+  };
+  const withLibs = (fn) => async (...args) => { await loadMailLibs(); return fn(...args); };
+  router.register('mail', {
+    presets: () => mail.presets(),
+    accounts: () => mail.accounts(),
+    addAccount: withLibs((input) => mail.addAccount(input)),
+    removeAccount: (id) => mail.removeAccount(id),
+    folders: withLibs((id) => mail.folders(id)),
+    list: withLibs((id, folder, page) => mail.list(id, folder, page)),
+    read: withLibs((id, folder, uid, opts) => mail.read(id, folder, uid, opts)),
+    moveToTrash: withLibs((id, folder, uid) => mail.moveToTrash(id, folder, uid)),
+    send: withLibs(async (id, msg) => {
+      const res = await mail.send(id, msg);
+      writeAudit({ source: 'mail', type: 'mail_send', summary: `To ${String(msg.to).slice(0, 120)}: ${String(msg.subject).slice(0, 120)}`, sentChars: String(msg.text ?? '').length });
+      return res;
+    }),
+    summarize: async (msg) => {
+      writeAudit({ source: 'mail', type: 'mail_ai', summary: `Summarize: ${String(msg.subject).slice(0, 120)}`, sentChars: String(msg.text ?? '').length });
+      return mail.summarize(msg);
+    },
+    draftReply: async (msg, instruction) => {
+      writeAudit({ source: 'mail', type: 'mail_ai', summary: `Draft reply: ${String(msg.subject).slice(0, 120)}`, sentChars: String(msg.text ?? '').length });
+      return mail.draftReply(msg, instruction);
+    },
+  });
+  setInterval(() => { if (mail.accounts().length) loadMailLibs().then(() => mail.poll()).catch(() => {}); }, mail.pollMs).unref?.();
 
   // ---- H5 game mode ----
   const game = createGameMode({ getTabs, getWin, send });

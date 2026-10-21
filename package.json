@@ -16,7 +16,10 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
     "exceljs": "^4.4.0",
+    "imapflow": "2.2.6",
+    "mailparser": "3.9.36",
     "mammoth": "^1.13.0",
+    "nodemailer": "10.0.15",
     "openai": "^7.34.0",
     "pdfjs-dist": "^6.4.299"
   },

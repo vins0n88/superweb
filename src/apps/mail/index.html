@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>郵箱</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="mail.css">
+</head>
+<body>
+<div class="mailapp">
+  <aside class="side">
+    <button class="btn primary" id="compose" disabled>✎ 寫信</button>
+    <div id="accounts"></div>
+    <button class="btn small" id="add-account">＋ 新增信箱</button>
+  </aside>
+  <section class="listpane">
+    <div class="row pad"><strong class="grow" id="folder-name">收件匣</strong><button class="btn small" id="refresh" title="重新整理">↻</button></div>
+    <ul class="list" id="messages"></ul>
+    <div class="row pad"><button class="btn small" id="older" hidden>載入更早的信</button></div>
+  </section>
+  <section class="reader" id="reader">
+    <div class="empty" id="welcome">
+      <p><strong>在 SuperWeb 裡收發信</strong></p>
+      <p class="muted">按「＋ 新增信箱」連接 Gmail、iCloud、Yahoo、QQ、163 或其他信箱。<br>需要使用信箱服務商的「應用程式專用密碼」，不是平常登入的密碼。</p>
+    </div>
+  </section>
+</div>
+
+<dialog id="account-dlg">
+  <form id="account-form" class="form" method="dialog">
+    <h2>新增信箱</h2>
+    <label>信箱服務<select name="preset" id="preset"></select></label>
+    <p class="small muted" id="preset-help"></p>
+    <label>信箱地址<input name="email" type="email" required autocomplete="off"></label>
+    <label>應用程式專用密碼<input name="password" type="password" required autocomplete="new-password"></label>
+    <label>顯示名稱（寄件者名稱，選填）<input name="name" maxlength="80"></label>
+    <div id="custom" hidden>
+      <div class="two">
+        <label>IMAP 伺服器<input name="imapHost" placeholder="imap.example.com"></label>
+        <label>埠<input name="imapPort" type="number" value="993"></label>
+      </div>
+      <div class="two">
+        <label>SMTP 伺服器<input name="smtpHost" placeholder="smtp.example.com"></label>
+        <label>埠<input name="smtpPort" type="number" value="465"></label>
+      </div>
+    </div>
+    <p class="small muted">新增時會先登入測試，成功才儲存；密碼加密存在系統鑰匙圈。</p>
+    <p class="error small" id="account-err" hidden></p>
+    <div class="actions"><span class="grow"></span><button type="button" class="btn" id="account-cancel">取消</button><button type="submit" class="btn primary" id="account-save">連接</button></div>
+  </form>
+</dialog>
+
+<dialog id="compose-dlg" class="wide">
+  <form id="compose-form" class="form" method="dialog">
+    <h2 id="compose-title">寫信</h2>
+    <label>寄件帳號<select name="account" id="compose-account"></select></label>
+    <label>收件人<input name="to" required placeholder="多位收件人用逗號分隔"></label>
+    <label>副本<input name="cc"></label>
+    <label>主旨<input name="subject" maxlength="300"></label>
+    <label>內容<textarea name="text" rows="12"></textarea></label>
+    <div class="row">
+      <input id="ai-hint" class="grow" placeholder="想怎麼回？例如：婉拒、下週二可以、請對方報價" hidden>
+      <button type="button" class="btn" id="ai-draft" hidden>✦ AI 擬回信</button>
+    </div>
+    <p class="error small" id="compose-err" hidden></p>
+    <div class="actions"><span class="grow"></span><button type="button" class="btn" id="compose-cancel">取消</button><button type="submit" class="btn primary" id="compose-send">寄出</button></div>
+  </form>
+</dialog>
+<script src="mail.js" type="module"></script>
+</body>
+</html>
