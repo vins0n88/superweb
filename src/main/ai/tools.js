@@ -6,6 +6,7 @@ import { normalizeInput } from '../url.js';
 import { SUPERAI_TOOL_DEFS } from '../superai-client.js';
 import { DOC_TOOL_DEFS } from '../documents.js';
 import { CALENDAR_TOOL_DEFS } from '../calendar.js';
+import { SKILL_TOOL_DEFS } from '../extensions.js';
 
 const ref = { type: 'integer', description: 'Element ref number from the latest snapshot, e.g. 12 for [12]' };
 
@@ -168,7 +169,15 @@ export const TOOL_DEFS = [
 ];
 
 // SuperAI tools are offered to the model only while the SuperAI connection is on (agent-host).
-const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS].map((d) => [d.name, d]));
+const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS, ...SKILL_TOOL_DEFS].map((d) => [d.name, d]));
+
+/** Tools that come and go at runtime (user-added MCP servers). */
+const DYNAMIC = new Map();
+export function setDynamicDefs(defs) {
+  DYNAMIC.clear();
+  for (const d of defs) DYNAMIC.set(d.name, d);
+}
+const defOf = (name) => DEFS_BY_NAME.get(name) ?? DYNAMIC.get(name);
 
 export function isInternal(name) {
   return Boolean(DEFS_BY_NAME.get(name)?.internal);
@@ -181,21 +190,21 @@ export function wrapUntrusted(text, url) {
 }
 
 export function isReadOnly(name) {
-  return Boolean(DEFS_BY_NAME.get(name)?.readOnly);
+  return Boolean(defOf(name)?.readOnly);
 }
 
 /** F2.2: a plan is required before acting on web pages; app actions (calendar, SuperAI) ask for approval on their own. */
 export function needsPlan(name) {
-  const def = DEFS_BY_NAME.get(name);
+  const def = defOf(name);
   return Boolean(def) && !def.readOnly && !def.noPlan;
 }
 
 /** Minimal JSON-Schema check for the flat object schemas above. */
 export function validateInput(name, input) {
-  const def = DEFS_BY_NAME.get(name);
+  const def = defOf(name);
   if (!def) return `unknown tool "${name}"`;
   if (!input || typeof input !== 'object' || Array.isArray(input)) return 'input must be an object';
-  const { properties, required = [] } = def.input_schema;
+  const { properties = {}, required = [] } = def.input_schema ?? {};
   for (const key of required) if (!(key in input)) return `missing required field "${key}"`;
   for (const [key, value] of Object.entries(input)) {
     if (key === '') continue; // some models emit {"": ...} for no-argument tools
@@ -254,7 +263,8 @@ export function describeCall(name, input, label = '') {
     case 'superai_list_skills': return 'List SuperAI skills';
     case 'superai_run_skill': return `Run SuperAI skill "${input.skill}" on: "${String(input.input ?? '').slice(0, 60)}${String(input.input ?? '').length > 60 ? '…' : ''}"`;
     case 'superai_get_task': return `Check SuperAI task ${input.task_id}`;
-    default: return name;
+    case 'load_skill': return `Load skill "${input.name}"`;
+    default: return DYNAMIC.get(name)?.label ? `${DYNAMIC.get(name).label}${Object.keys(input ?? {}).length ? ` ${JSON.stringify(input).slice(0, 80)}` : ''}` : name;
   }
 }
 

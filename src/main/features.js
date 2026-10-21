@@ -18,6 +18,7 @@ import { createMail } from './mail.js';
 export const APPS = {
   calendar: { title: '行動日曆・課程表', icon: '📅' },
   mail: { title: '郵箱', icon: '✉' },
+  extensions: { title: '擴充：MCP 服務與技能', icon: '🧩' },
   player: { title: '影音播放器', icon: '▶' },
 };
 
@@ -31,7 +32,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, dataDir, srcDir, notify }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, dataDir, srcDir, notify }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -145,6 +146,32 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     },
   });
   setInterval(() => { if (mail.accounts().length) loadMailLibs().then(() => mail.poll()).catch(() => {}); }, mail.pollMs).unref?.();
+
+  // ---- Extensions: MCP servers and skills ----
+  router.register('extensions', {
+    servers: () => extensions.servers(),
+    addServer: (input) => extensions.addServer(input),
+    refresh: (id) => extensions.refresh(id),
+    setEnabled: (id, on) => extensions.setEnabled(id, on),
+    removeServer: (id) => extensions.removeServer(id),
+    skills: () => extensions.skills(),
+    saveSkill: (skill) => extensions.saveSkill(skill),
+    removeSkill: (id) => extensions.removeSkill(id),
+    async importSkills() {
+      const res = await dialog.showOpenDialog(getWin(), { title: '匯入技能（SKILL.md）', properties: ['openFile', 'multiSelections'], filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }] });
+      if (res.canceled) return { imported: [], errors: [] };
+      const imported = [];
+      const errors = [];
+      for (const file of res.filePaths.slice(0, 20)) {
+        try {
+          imported.push(extensions.importSkill(await fs.readFile(file, 'utf8'), file).name);
+        } catch (err) {
+          errors.push(`${path.basename(file)}：${err.message}`);
+        }
+      }
+      return { imported, errors };
+    },
+  });
 
   // ---- H5 game mode ----
   const game = createGameMode({ getTabs, getWin, send });

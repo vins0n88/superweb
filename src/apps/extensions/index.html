@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>擴充</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="extensions.css">
+</head>
+<body>
+<div class="page">
+  <div class="head"><h1>🧩 擴充：MCP 服務與技能</h1></div>
+  <p class="muted small">新增或變更後，在 AI 面板按「New chat」開新對話就會生效。</p>
+
+  <section class="card">
+    <div class="row"><h2 class="grow">MCP 服務</h2><button class="btn primary" id="add-server">＋ 新增 MCP 服務</button></div>
+    <p class="muted small">接上 MCP 伺服器後，AI 就能使用它的工具（例如 GitHub、Notion、資料庫、本機檔案）。使用外部工具前都會先問你（伺服器標示為唯讀的工具除外），工具回傳的內容一律當成資料，不會當成指令。</p>
+    <div id="servers" class="items"></div>
+  </section>
+
+  <section class="card">
+    <div class="row"><h2 class="grow">技能</h2><button class="btn" id="import-skill">匯入 SKILL.md</button><button class="btn primary" id="add-skill">＋ 新增技能</button></div>
+    <p class="muted small">技能是寫給 AI 的作業說明：遇到相關任務時，AI 會先讀技能再照著做。格式與 Claude、SuperAI 的 SKILL.md 相容。</p>
+    <div id="skills" class="items"></div>
+  </section>
+</div>
+
+<dialog id="server-dlg">
+  <form id="server-form" class="form" method="dialog">
+    <h2>新增 MCP 服務</h2>
+    <label>名稱<input name="name" required maxlength="60" placeholder="例如 GitHub"></label>
+    <label>連線方式
+      <select name="kind" id="kind"><option value="http">遠端網址（Streamable HTTP）</option><option value="stdio">本機指令（stdio）</option></select>
+    </label>
+    <div id="http-fields">
+      <label>網址<input name="url" placeholder="https://example.com/mcp"></label>
+      <label>標頭（選填，每行一個，例如 Authorization: Bearer …）<textarea name="headers" rows="2" spellcheck="false"></textarea></label>
+    </div>
+    <div id="stdio-fields" hidden>
+      <label>指令<input name="command" placeholder="npx" spellcheck="false"></label>
+      <label>參數（以空白分隔）<input name="args" placeholder="-y @modelcontextprotocol/server-filesystem /Users/me/Documents" spellcheck="false"></label>
+      <label>環境變數（選填，每行一個，例如 API_KEY=…）<textarea name="env" rows="2" spellcheck="false"></textarea></label>
+      <p class="small warn">本機指令會以你的帳號權限在這台電腦執行，只加入你信任的伺服器。</p>
+    </div>
+    <p class="small muted">標頭與環境變數會加密存在系統鑰匙圈。</p>
+    <p class="error small" id="server-err" hidden></p>
+    <div class="actions"><span class="grow"></span><button type="button" class="btn" id="server-cancel">取消</button><button type="submit" class="btn primary" id="server-save">連接並讀取工具</button></div>
+  </form>
+</dialog>
+
+<dialog id="skill-dlg" class="wide">
+  <form id="skill-form" class="form" method="dialog">
+    <h2 id="skill-title">新增技能</h2>
+    <label>名稱（英數或中文皆可）<input name="name" required maxlength="64"></label>
+    <label>什麼時候用（一句話，AI 靠這句決定要不要讀它）<input name="description" maxlength="300" placeholder="例如：整理競品價格並寫成週報時"></label>
+    <label>步驟說明<textarea name="body" rows="12" required placeholder="1. 先……&#10;2. 再……&#10;3. 輸出格式……"></textarea></label>
+    <label class="check"><input type="checkbox" name="enabled" checked> 啟用</label>
+    <p class="error small" id="skill-err" hidden></p>
+    <div class="actions"><button type="button" class="btn" id="skill-delete" hidden>刪除</button><span class="grow"></span><button type="button" class="btn" id="skill-cancel">取消</button><button type="submit" class="btn primary">儲存</button></div>
+  </form>
+</dialog>
+<script src="extensions.js" type="module"></script>
+</body>
+</html>

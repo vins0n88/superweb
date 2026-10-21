@@ -1,0 +1,17 @@
+.items { display: grid; gap: 8px; margin-top: 12px; }
+.item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.item .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.item .name { font-weight: 600; }
+.tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.tools span { font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+.tools span.ro { border-color: var(--ok); color: var(--ok); }
+.warn { color: var(--warn); }
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 0; width: min(520px, 92vw); }
+dialog.wide { width: min(720px, 94vw); }
+dialog::backdrop { background: rgb(0 0 0 / .35); }
+.form { display: grid; gap: 10px; padding: 18px; }
+.form h2 { margin: 0 0 4px; }
+.form label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.form label.check { display: flex; align-items: center; gap: 6px; }
+.form .actions { display: flex; gap: 8px; margin-top: 6px; }
+.form textarea { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }

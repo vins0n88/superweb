@@ -17,6 +17,7 @@ import { GoogleSheets, NotionExporter } from './integrations.js';
 import { registerFeatures } from './features.js';
 import { createDocumentStore } from './documents.js';
 import { createCalendar } from './calendar.js';
+import { createExtensions } from './extensions.js';
 import { registerAppScheme, isAppUrl, appNameOf } from './apps.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -443,9 +444,10 @@ app.whenReady().then(() => {
   });
   const documents = createDocumentStore({ onChange: (list) => send('docs:changed', list) });
   const calendar = createCalendar({ dir: app.getPath('userData'), notify });
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar });
+  const extensions = createExtensions({ dir: app.getPath('userData'), secrets: settings });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, dataDir: app.getPath('userData'), srcDir: SRC, notify });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, dataDir: app.getPath('userData'), srcDir: SRC, notify });
   buildMenu();
   createWindow();
   host.syncMcp();
