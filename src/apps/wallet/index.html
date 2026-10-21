@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>錢包</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="wallet.css">
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <h1>👛 錢包</h1>
+    <div class="seg" role="tablist">
+      <button class="btn" data-tab="assets" role="tab">資產總覽</button>
+      <button class="btn" data-tab="ledger" role="tab">記帳</button>
+      <button class="btn" data-tab="web3" role="tab">Web3 錢包</button>
+      <button class="btn" data-tab="dapp" role="tab">網站連接</button>
+    </div>
+  </div>
+  <p class="notice small">🔒 錢包內容 AI 完全無法讀取或操作。這裡只存卡號末四碼；Web3 私鑰加密存在系統鑰匙圈，顯示助記詞與送出交易都要 Touch ID／系統驗證。SuperWeb 不提供投資建議。</p>
+  <p id="msg" class="small" hidden></p>
+
+  <!-- assets -->
+  <section data-panel="assets" class="grid">
+    <div class="totals">
+      <div class="card"><span class="muted small">資產</span><b id="t-assets">—</b></div>
+      <div class="card"><span class="muted small">負債</span><b id="t-debts">—</b></div>
+      <div class="card"><span class="muted small">淨值</span><b id="t-net">—</b></div>
+    </div>
+    <div class="card">
+      <div class="row"><h2 class="grow">資產項目</h2><label class="small muted">換算成 <input id="base" maxlength="3" size="4"></label><button class="btn primary" id="add-item">＋ 新增</button></div>
+      <ul class="list" id="items"></ul>
+    </div>
+  </section>
+
+  <!-- ledger -->
+  <section data-panel="ledger" class="grid" hidden>
+    <div class="card">
+      <form id="tx-form" class="row">
+        <input name="date" type="date" required>
+        <input name="amount" type="number" step="any" placeholder="金額（支出用負數）" required style="width:11em">
+        <input name="currency" value="TWD" maxlength="3" size="4">
+        <input name="category" placeholder="分類（餐飲、交通…）" list="cats" size="12">
+        <input name="note" placeholder="備註" class="grow">
+        <button class="btn primary">記一筆</button>
+        <datalist id="cats"><option>餐飲</option><option>交通</option><option>購物</option><option>居住</option><option>娛樂</option><option>醫療</option><option>教育</option><option>薪資</option><option>投資</option></datalist>
+      </form>
+    </div>
+    <div class="card">
+      <div class="row"><h2 class="grow">本月 <input type="month" id="month"></h2><button class="btn" id="analyze">✦ AI 分析收支</button></div>
+      <div id="month-sum" class="small"></div>
+      <div id="analysis" class="analysis" hidden></div>
+      <ul class="list" id="tx"></ul>
+    </div>
+  </section>
+
+  <!-- web3 -->
+  <section data-panel="web3" class="grid" hidden>
+    <div class="card">
+      <div class="row">
+        <select id="wallet-select" aria-label="錢包"></select>
+        <select id="network" aria-label="網路"></select>
+        <span class="grow"></span>
+        <button class="btn" id="new-wallet">＋ 新建錢包</button>
+        <button class="btn" id="import-wallet">匯入</button>
+      </div>
+      <div id="wallet-body"></div>
+    </div>
+  </section>
+
+  <!-- dapp -->
+  <section data-panel="dapp" class="grid" hidden>
+    <div class="card">
+      <div class="row"><h2 class="grow">讓網站連接錢包</h2><label class="row"><input type="checkbox" id="dapp-on"> 開啟</label></div>
+      <p class="muted small">開啟後，新開的分頁會提供 window.ethereum，DeFi、NFT 等網站可以要求連接。每次連接、簽名、交易都會跳出 SuperWeb 的確認視窗；交易與授權類簽名還需要 Touch ID。AI 專用分頁與背景任務分頁不會提供錢包。</p>
+      <h3>已連接的網站</h3>
+      <ul class="list" id="connections"></ul>
+    </div>
+  </section>
+</div>
+
+<dialog id="item-dlg">
+  <form id="item-form" class="form" method="dialog">
+    <h2>資產項目</h2>
+    <label>類型<select name="kind" id="kind"></select></label>
+    <label>名稱<input name="name" maxlength="80" placeholder="例如：台新薪轉、悠遊卡、冷錢包"></label>
+    <div data-for="bank card"><label>銀行／發卡機構<input name="institution" maxlength="80"></label><label>卡號或帳號末四碼（只要 4 碼）<input name="last4" maxlength="4" inputmode="numeric" pattern="\d{4}"></label></div>
+    <div data-for="bank card cash other"><div class="two"><label>幣別<input name="currency" value="TWD" maxlength="3"></label><label><span id="balance-label">餘額</span><input name="balance" type="number" step="any" value="0"></label></div></div>
+    <div data-for="crypto_address"><label>區塊鏈<select name="chain" id="chain"></select></label><label>公開地址（不是私鑰）<input name="address" spellcheck="false"></label></div>
+    <div data-for="crypto_holding"><div class="two"><label>幣種（CoinGecko id）<input name="coin" placeholder="bitcoin"></label><label>數量<input name="amount" type="number" step="any"></label></div></div>
+    <label>備註<input name="note" maxlength="300"></label>
+    <p class="error small" id="item-err" hidden></p>
+    <div class="actions"><button type="button" class="btn" id="item-delete" hidden>刪除</button><span class="grow"></span><button type="button" class="btn" id="item-cancel">取消</button><button class="btn primary">儲存</button></div>
+  </form>
+</dialog>
+
+<dialog id="seed-dlg">
+  <div class="form">
+    <h2>請抄寫你的助記詞</h2>
+    <p class="small warn">這 12 個英文單字就是錢包本身：任何人拿到都能動用你的資產；遺失就無法找回。請抄在紙上收好，不要截圖、不要傳給任何人。SuperWeb 之後只在 Touch ID 驗證後才會再顯示。</p>
+    <ol class="seed" id="seed"></ol>
+    <label class="check"><input type="checkbox" id="seed-ok"> 我已經抄寫並保存好</label>
+    <div class="actions"><span class="grow"></span><button class="btn primary" id="seed-done" disabled>完成</button></div>
+  </div>
+</dialog>
+
+<dialog id="import-dlg">
+  <form id="import-form" class="form" method="dialog">
+    <h2>匯入錢包</h2>
+    <label>名稱<input name="name" maxlength="60"></label>
+    <label>助記詞（12／24 個英文單字）或私鑰<textarea name="secret" rows="3" spellcheck="false" autocomplete="off"></textarea></label>
+    <p class="small muted">只會加密存在這台電腦的系統鑰匙圈。</p>
+    <p class="error small" id="import-err" hidden></p>
+    <div class="actions"><span class="grow"></span><button type="button" class="btn" id="import-cancel">取消</button><button class="btn primary">匯入</button></div>
+  </form>
+</dialog>
+<script src="wallet.js" type="module"></script>
+</body>
+</html>

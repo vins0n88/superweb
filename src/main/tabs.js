@@ -18,8 +18,9 @@ export class TabManager {
    *   pageScriptPaths: the agent page script first, then add-ons that extend window.__superweb
    *   appPreload: bridge for built-in app pages (superweb://…), given only to tabs opened as apps
    */
-  constructor(win, { pageScriptPaths, appPreload, onChange, onContextMenu }) {
+  constructor(win, { pageScriptPaths, appPreload, webPreload, onChange, onContextMenu }) {
     this.appPreload = appPreload;
+    this.webPreload = webPreload; // () => path | null: wallet bridge for ordinary tabs when the user turned it on
     this.win = win;
     this.pageScript = pageScriptPaths.map((p) => fs.readFileSync(p, 'utf8')).join('\n;\n');
     this.onChange = onChange;
@@ -39,7 +40,9 @@ export class TabManager {
     const view = new WebContentsView({
       webPreferences: {
         sandbox: true, contextIsolation: true, nodeIntegration: false,
-        ...(app ? { preload: this.appPreload, backgroundThrottling: false } : profile === 'agent' ? { partition: AGENT_PARTITION } : {}),
+        ...(app ? { preload: this.appPreload, backgroundThrottling: false }
+          : profile === 'agent' ? { partition: AGENT_PARTITION }
+            : !job && this.webPreload?.() ? { preload: this.webPreload() } : {}),
       },
     });
     const wc = view.webContents;

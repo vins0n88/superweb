@@ -15,6 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
+    "ethers": "6.17.0",
     "exceljs": "^4.4.0",
     "imapflow": "2.2.6",
     "mailparser": "3.9.36",

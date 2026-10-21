@@ -26,6 +26,7 @@ export const DEFAULTS = {
   superai: { enabled: false, url: '' }, // SuperAI integration; url '' = discover the running app (token lives in keys)
   translate: { target: 'zh-Hant', mode: 'bilingual' }, // live page translation
   api: { enabled: false, port: 39218, token: '' }, // local REST API (off by default)
+  walletDapp: false, // websites may ask to connect to the wallet (window.ethereum)
   homepage: 'https://superai.ky',
   searchTemplate: DEFAULT_SEARCH,
 };
@@ -122,6 +123,7 @@ export class Settings {
       if (patch.mcp.regenerateToken || (mcp.enabled && !mcp.token)) mcp.token = newToken();
       this.data.mcp = mcp;
     }
+    if (patch.walletDapp !== undefined) this.data.walletDapp = Boolean(patch.walletDapp);
     if (patch.api) {
       const api = { ...DEFAULTS.api, ...this.data.api };
       if (patch.api.enabled !== undefined) api.enabled = Boolean(patch.api.enabled);

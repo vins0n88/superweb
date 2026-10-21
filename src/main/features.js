@@ -18,6 +18,7 @@ import { AGENT_PARTITION } from './tabs.js';
 import { createRestApi, API_DEFAULT_PORT } from './rest-api.js';
 import { createTaskTools } from './mcp-tasks.js';
 import { listTemplates } from './templates.js';
+import { registerWallet } from './wallet-features.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
@@ -26,6 +27,7 @@ export const APPS = {
   extensions: { title: '擴充：MCP 服務與技能', icon: '🧩' },
   proxy: { title: '網路與代理', icon: '🌐' },
   data: { title: '數據與 API', icon: '📊' },
+  wallet: { title: '錢包', icon: '👛' },
   player: { title: '影音播放器', icon: '▶' },
 };
 
@@ -279,6 +281,9 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
       return syncApi();
     },
   });
+
+  // ---- Wallet: assets + Web3 (+ optional dApp connection) ----
+  registerWallet({ ipcMain, router, getTabs, getWin, settings, dataDir, data, writeAudit, ask }).catch((err) => console.error('[superweb] wallet unavailable:', err));
 
   // ---- H5 game mode ----
   const game = createGameMode({ getTabs, getWin, send });

@@ -119,7 +119,9 @@ function registerIpc() {
   // ---- Settings ----
   ipcMain.handle('settings:get', () => settings.publicView());
   ipcMain.handle('settings:update', async (_e, patch) => {
-    const view = settings.update(patch ?? {});
+    // The wallet's dApp switch is only changed from the wallet page, after Touch ID.
+    const { walletDapp: _ignored, ...rest } = patch ?? {};
+    const view = settings.update(rest);
     host.agent.reset(); // provider/model may have changed
     if (patch?.mcp) await host.syncMcp();
     send('settings:changed', view);
@@ -402,6 +404,7 @@ function createWindow() {
   tabs = new TabManager(win, {
     pageScriptPaths: [path.join(SRC, 'page', 'agent-page.js'), path.join(SRC, 'page', 'translate-page.js'), path.join(SRC, 'page', 'media-page.js')],
     appPreload: path.join(SRC, 'preload', 'app.cjs'),
+    webPreload: () => (settings.data.walletDapp ? path.join(SRC, 'preload', 'web.cjs') : null),
     onChange: (state) => send('tabs:changed', state),
     onContextMenu: (tab, params) => features?.contextMenu(tab, params),
   });
