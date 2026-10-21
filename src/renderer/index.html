@@ -64,10 +64,12 @@
         <div id="jobs-list"></div>
       </div>
       <form id="composer">
+        <div id="doc-chips" hidden></div>
         <textarea id="prompt" rows="3" placeholder="Ask about this page, or tell the agent what to do…"></textarea>
         <div class="composer-row">
           <span class="muted small">Enter to send · Shift+Enter for newline</span>
           <button id="pause" type="button" class="ghost-btn" hidden>Pause</button>
+          <button id="attach-doc" type="button" class="ghost-btn" title="附加文件讓 AI 分析（PDF、Word、Excel、CSV、文字）；也可以直接把檔案拖進這裡">📄 文件</button>
           <button id="send-bg" type="button" class="ghost-btn" title="Run in the background: its own tab, notifies you when done">⧉ 背景執行</button>
           <button id="send" type="submit" class="primary-btn">Send</button>
           <button id="stop" type="button" class="danger-btn" hidden>Stop</button>

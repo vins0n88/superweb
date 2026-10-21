@@ -10,6 +10,7 @@ import { createGate } from './security/gate.js';
 import { createMcpServer, connectCommand } from './mcp-server.js';
 import { createTaskTools, TASK_TOOL_DEFS, TASK_TOOL_NAMES } from './mcp-tasks.js';
 import { SUPERAI_TOOL_DEFS, SUPERAI_TOOL_NAMES, createSuperaiExecutor } from './superai-client.js';
+import { DOC_TOOL_DEFS } from './documents.js';
 import { JobManager } from './jobs.js';
 
 const MCP_TASK_IDLE_MS = 15 * 60 * 1000;
@@ -31,7 +32,7 @@ export const MCP_TOOLS = [...TOOL_DEFS.filter((d) => !d.internal).map(withHints)
  * @param {(note: {title: string, body: string, jobId?: string}) => void} deps.notify
  * @param {string} deps.version
  */
-export function createAgentHost({ getTabs, settings, audit, send, notify, version }) {
+export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents }) {
   const pendingApprovals = new Map();
   const pendingPlans = new Map();
   const writeAudit = (entry) => {
@@ -63,7 +64,7 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
    */
   // SuperAI integration: superai_* tools are offered only while the connection is on.
   const superai = createSuperaiExecutor(() => ({ ...settings.superaiConfig(), version }));
-  const modelTools = () => (settings.data.superai?.enabled ? [...MODEL_TOOLS, ...SUPERAI_TOOL_DEFS.map(stripLocal)] : MODEL_TOOLS);
+  const modelTools = () => [...MODEL_TOOLS, ...DOC_TOOL_DEFS.map(stripLocal), ...(settings.data.superai?.enabled ? SUPERAI_TOOL_DEFS.map(stripLocal) : [])];
 
   /** Settings → SuperAI → Test: lists SuperAI's experts with the saved token. */
   async function testSuperai() {
@@ -126,7 +127,10 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
       searchTemplate: () => settings.data.searchTemplate,
     });
     const pageTools = createToolExecutor(browser);
-    const execute = (name, input) => (SUPERAI_TOOL_NAMES.has(name) ? superai(name, input) : pageTools(name, input));
+    const execute = async (name, input) => {
+      if (name === 'read_document') return documents.read(input);
+      return SUPERAI_TOOL_NAMES.has(name) ? superai(name, input) : pageTools(name, input);
+    };
     return { binding, browser, review, execute };
   }
 
@@ -146,6 +150,7 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
       confirmActions: () => settings.data.confirmActions,
       requirePlan: () => settings.data.requirePlan,
       verifyResults: () => settings.data.verifyResults,
+      contextNote: foreground ? () => documents.contextNote() : undefined,
     });
     return { agent, ...b };
   }

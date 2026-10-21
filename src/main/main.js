@@ -15,6 +15,7 @@ import { SkillStore, SkillRecorder, skillToTask } from './skills.js';
 import { buildComparePrompt } from './compare.js';
 import { GoogleSheets, NotionExporter } from './integrations.js';
 import { registerFeatures } from './features.js';
+import { createDocumentStore } from './documents.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(here, '..');
@@ -435,9 +436,10 @@ app.whenReady().then(() => {
     recorderScript: fs.readFileSync(path.join(SRC, 'page', 'recorder.js'), 'utf8'),
     onStep: (count) => send('skills:recording', { recording: true, steps: count }),
   });
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion() });
+  const documents = createDocumentStore({ onChange: (list) => send('docs:changed', list) });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, agent: host.agent });
   buildMenu();
   createWindow();
   host.syncMcp();

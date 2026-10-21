@@ -214,7 +214,8 @@ export class Agent {
       this.session ??= this.deps.createSession();
       // Ground every task in the tab the user is looking at.
       const startUrl = this.deps.activeUrl?.() ?? '';
-      let turn = { userText: startUrl && !startUrl.startsWith('about:') ? `${userText}\n\n[Context: the active tab is ${startUrl}]` : userText };
+      const contexts = [startUrl && !startUrl.startsWith('about:') ? `[Context: the active tab is ${startUrl}]` : '', this.deps.contextNote?.() ?? ''].filter(Boolean);
+      let turn = { userText: contexts.length ? `${userText}\n\n${contexts.join('\n')}` : userText };
       let emptyReplies = 0;
       let toolTextNudged = false;
       let tableNudged = false;

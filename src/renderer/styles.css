@@ -485,3 +485,12 @@ dialog input[type="time"] { height: 32px; padding: 0 10px; border: 1px solid var
 /* v0.5: toolbar toggles that stay lit while on (e.g. live translation) */
 #translate-toggle { font-size: 12px; font-weight: 600; letter-spacing: -0.02em; }
 #translate-toggle.on { background: var(--accent, #7c8cff); color: #fff; }
+
+/* v0.5: attached documents in the AI composer */
+#doc-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.doc-chip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--border, rgba(255,255,255,.12)); border-radius: 8px; font-size: 12px; }
+.doc-chip > span { flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-chip button { font: inherit; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border, rgba(255,255,255,.18)); background: transparent; color: inherit; cursor: pointer; }
+.doc-chip button:hover { background: var(--accent-soft); }
+.doc-chip .doc-x { margin-left: auto; border: 0; }
+#ai-panel.drop { outline: 2px dashed var(--accent); outline-offset: -6px; }

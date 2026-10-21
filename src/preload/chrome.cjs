@@ -107,6 +107,13 @@ contextBridge.exposeInMainWorld('superweb', {
   superai: {
     test: invoke('superai:test'),
   },
+  docs: {
+    pick: invoke('docs:pick'),
+    add: invoke('docs:add'),
+    list: invoke('docs:list'),
+    remove: invoke('docs:remove'),
+    onChanged: on('docs:changed'),
+  },
   translate: {
     toggle: invoke('translate:toggle'),
     state: invoke('translate:state'),
