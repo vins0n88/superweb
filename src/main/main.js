@@ -102,9 +102,7 @@ function registerIpc() {
   ipcMain.handle('nav:go', (_e, input) => {
     if (isAppUrl(String(input).trim())) return features.openApp(appNameOf(String(input).trim()));
     const url = normalizeInput(input, settings.data.searchTemplate);
-    const tab = tabs.active();
-    if (tab) tab.view.webContents.loadURL(url).catch(() => {});
-    else tabs.create(url);
+    tabs.load(tabs.activeId, url);
     return url;
   });
   ipcMain.handle('nav:action', (_e, action) => {
@@ -114,7 +112,7 @@ function registerIpc() {
     if (action === 'forward' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
     if (action === 'reload') wc.reload();
     if (action === 'stop') wc.stop();
-    if (action === 'home') wc.loadURL(settings.data.homepage).catch(() => {});
+    if (action === 'home') tabs.load(tabs.activeId, settings.data.homepage);
   });
 
   // ---- Settings ----

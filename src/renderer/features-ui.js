@@ -28,6 +28,17 @@ export function initFeatures({ api }) {
     gameBtn.classList.toggle('on', Boolean(g && (g.fullscreen || g.device !== 'off' || g.muted)));
   };
   gameBtn.addEventListener('click', () => api.game.menu());
+
+  // Network: lit while traffic goes through a proxy.
+  const proxyBtn = document.getElementById('proxy-menu');
+  const MODE = { direct: '直連', system: '系統代理', proxy: '全部走代理', split: '分流' };
+  const renderProxy = (p) => {
+    proxyBtn.classList.toggle('on', p.mode === 'proxy' || p.mode === 'split');
+    proxyBtn.title = `網路：${MODE[p.mode] ?? p.mode}${p.active && (p.mode === 'proxy' || p.mode === 'split') ? `（${p.active}）` : ''}`;
+  };
+  proxyBtn.addEventListener('click', () => api.proxy.menu());
+  api.proxy.onChanged(renderProxy);
+  api.proxy.state().then(renderProxy);
   api.game.onChanged((s) => { game = s; renderGame(); });
   api.tabs.onChanged((s) => { activeId = s.activeId; renderGame(); });
   api.tabs.onChanged((s) => {

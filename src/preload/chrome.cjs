@@ -107,6 +107,12 @@ contextBridge.exposeInMainWorld('superweb', {
   superai: {
     test: invoke('superai:test'),
   },
+  proxy: {
+    menu: invoke('proxy:menu'),
+    state: invoke('proxy:state'),
+    onChanged: on('proxy:changed'),
+    onError: on('proxy:error'),
+  },
   game: {
     menu: invoke('game:menu'),
     update: invoke('game:update'),

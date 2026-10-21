@@ -4,7 +4,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Menu, clipboard, dialog } from 'electron';
+import { Menu, clipboard, dialog, session, net, app as electronApp } from 'electron';
 import { createSession } from './ai/providers/index.js';
 import { siteTier } from './security/policy.js';
 import { createTranslator, LANGUAGES } from './translate.js';
@@ -13,12 +13,15 @@ import { APP_SCHEME, createAppRouter, createMediaRegistry, serveApps } from './a
 import { createPlayer } from './player.js';
 import { createGameMode } from './game.js';
 import { createMail } from './mail.js';
+import { createProxy } from './proxy.js';
+import { AGENT_PARTITION } from './tabs.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
   calendar: { title: '行動日曆・課程表', icon: '📅' },
   mail: { title: '郵箱', icon: '✉' },
   extensions: { title: '擴充：MCP 服務與技能', icon: '🧩' },
+  proxy: { title: '網路與代理', icon: '🌐' },
   player: { title: '影音播放器', icon: '▶' },
 };
 
@@ -171,6 +174,63 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
       }
       return { imported, errors };
     },
+  });
+
+  // ---- Network & proxy ----
+  const proxy = createProxy({
+    dir: dataDir,
+    secrets: settings,
+    sessions: () => [session.defaultSession, session.fromPartition(AGENT_PARTITION)],
+    // net.request (not fetch) so the proxy's username/password can be supplied on its auth challenge
+    fetchVia: (url, ses) => new Promise((resolve, reject) => {
+      const req = net.request({ url, session: ses, useSessionCookies: false, cache: 'no-store' });
+      req.on('login', (authInfo, cb) => {
+        const c = authInfo.isProxy ? proxy.credentialsFor(authInfo.host, authInfo.port) : null;
+        if (c?.pass) cb(c.user, c.pass);
+        else cb();
+      });
+      req.on('response', (res) => {
+        let body = '';
+        res.on('data', (d) => { body += d; });
+        res.on('end', () => resolve({ ok: res.statusCode < 400, status: res.statusCode, text: async () => body }));
+      });
+      req.on('error', reject);
+      setTimeout(() => { req.abort(); reject(new Error('逾時')); }, 15000);
+      req.end();
+    }),
+  });
+  proxy.apply().catch(() => {});
+  proxy.onChange((st) => { send('proxy:changed', { mode: st.mode, active: st.servers.find((x) => x.id === st.active)?.name ?? '' }); router.emit('proxy', 'changed', st); });
+  electronApp.on('login', (event, _wc, _details, authInfo, callback) => {
+    if (!authInfo.isProxy) return;
+    const creds = proxy.credentialsFor(authInfo.host, authInfo.port);
+    if (!creds?.pass) return;
+    event.preventDefault();
+    callback(creds.user, creds.pass);
+  });
+  router.register('proxy', {
+    state: () => proxy.state(),
+    setMode: (m) => proxy.setMode(m),
+    setActive: (id) => proxy.setActive(id),
+    addServer: (srv) => proxy.addServer(srv),
+    importText: (text) => proxy.importText(text),
+    removeServer: (id) => proxy.removeServer(id),
+    setRules: (r) => proxy.setRules(r),
+    test: () => proxy.test(),
+  });
+  const MODE_LABEL = { direct: '直連（不使用代理）', system: '跟隨系統代理', proxy: '全部走代理', split: '分流（依網站）' };
+  ipcMain.handle('proxy:state', () => { const st = proxy.state(); return { mode: st.mode, active: st.servers.find((x) => x.id === st.active)?.name ?? '' }; });
+  ipcMain.handle('proxy:menu', () => {
+    const win = getWin();
+    if (!win) return;
+    const st = proxy.state();
+    const fail = (err) => send('proxy:error', err.message);
+    Menu.buildFromTemplate([
+      ...Object.entries(MODE_LABEL).map(([m, label]) => ({ label, type: 'radio', checked: st.mode === m, enabled: m === 'direct' || m === 'system' || st.servers.length > 0, click: () => proxy.setMode(m).catch(fail) })),
+      { type: 'separator' },
+      ...(st.servers.length ? [{ label: '代理伺服器', submenu: st.servers.map((x) => ({ label: `${x.name}（${x.type.toUpperCase()}）`, type: 'radio', checked: x.id === st.active, click: () => proxy.setActive(x.id).catch(fail) })) }] : []),
+      { label: '網路與代理設定…', click: () => openApp('proxy') },
+    ]).popup({ window: win });
   });
 
   // ---- H5 game mode ----

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>網路與代理</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="proxy.css">
+</head>
+<body>
+<div class="page">
+  <div class="head"><h1>🌐 網路與代理</h1><button class="btn" id="test">測試連線</button><span class="small" id="test-result"></span></div>
+
+  <section class="card">
+    <h2>連線模式</h2>
+    <div class="modes" id="modes">
+      <label><input type="radio" name="mode" value="direct"> <b>直連</b><span class="muted small">不使用代理</span></label>
+      <label><input type="radio" name="mode" value="system"> <b>跟隨系統</b><span class="muted small">使用 macOS 網路設定裡的代理／VPN</span></label>
+      <label><input type="radio" name="mode" value="proxy"> <b>全部走代理</b><span class="muted small">所有網站都經過選定的代理伺服器（本機網址除外）</span></label>
+      <label><input type="radio" name="mode" value="split"> <b>分流</b><span class="muted small">依下方規則決定哪些網站走代理</span></label>
+    </div>
+    <p class="error small" id="mode-err" hidden></p>
+  </section>
+
+  <section class="card">
+    <div class="row"><h2 class="grow">代理伺服器</h2></div>
+    <ul class="list" id="servers"></ul>
+    <form id="add-form" class="row add">
+      <select name="type"><option value="http">HTTP</option><option value="https">HTTPS</option><option value="socks5">SOCKS5</option></select>
+      <input name="host" placeholder="伺服器位址" required size="18">
+      <input name="port" type="number" placeholder="埠" required min="1" max="65535" style="width:6em">
+      <input name="name" placeholder="名稱（選填）" size="12">
+      <input name="user" placeholder="帳號（選填）" size="10" autocomplete="off">
+      <input name="pass" type="password" placeholder="密碼（選填）" size="10" autocomplete="new-password">
+      <button class="btn primary" type="submit">新增</button>
+    </form>
+    <details>
+      <summary class="small">匯入（貼上代理網址或 Clash 設定）</summary>
+      <textarea id="import-text" rows="6" placeholder="socks5://user:pass@1.2.3.4:1080#香港&#10;http://proxy.example.com:8080&#10;或貼上 Clash 設定中的 proxies: 區段" spellcheck="false"></textarea>
+      <div class="row"><button class="btn" id="import">匯入</button><span class="muted small">支援 HTTP／HTTPS／SOCKS5。vmess、trojan、shadowsocks 等協定需要專用核心程式，會被略過。</span></div>
+    </details>
+    <p class="small" id="server-msg" hidden></p>
+  </section>
+
+  <section class="card">
+    <h2>分流規則</h2>
+    <div class="row">
+      <span>沒有符合規則的網站：</span>
+      <select id="default-route"><option value="direct">直連</option><option value="proxy">走代理</option></select>
+    </div>
+    <div class="two-col">
+      <label>這些網站走代理（每行一個網域，包含子網域）<textarea id="proxy-sites" rows="8" spellcheck="false" placeholder="google.com&#10;youtube.com&#10;openai.com"></textarea></label>
+      <label>這些網站直連<textarea id="direct-sites" rows="8" spellcheck="false" placeholder="gov.tw&#10;bank.com.tw"></textarea></label>
+    </div>
+    <div class="row"><button class="btn primary" id="save-rules">儲存規則</button><span class="muted small" id="rules-msg"></span></div>
+  </section>
+  <p class="muted small">代理設定會同時套用到一般分頁與 AI 專用分頁。帳號密碼加密存在系統鑰匙圈。SuperWeb 不提供代理節點，請使用你自己的或服務商提供的伺服器。</p>
+</div>
+<script src="proxy.js" type="module"></script>
+</body>
+</html>

@@ -496,5 +496,5 @@ dialog input[type="time"] { height: 32px; padding: 0 10px; border: 1px solid var
 #ai-panel.drop { outline: 2px dashed var(--accent); outline-offset: -6px; }
 
 /* v0.5: H5 game mode hides the browser chrome so the game gets the whole window */
-#game-menu.on, #open-apps.on { background: var(--accent-soft); }
+#game-menu.on, #open-apps.on, #proxy-menu.on { background: var(--accent-soft); }
 body.game #titlebar, body.game #toolbar, body.game #ai-panel, body.game #splitter { display: none !important; }

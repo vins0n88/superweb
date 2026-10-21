@@ -51,6 +51,8 @@ export class TabManager {
       if (app && /^https?:/i.test(target)) this.create(target);
     };
     wc.on('will-navigate', guard);
+    // Belt and braces: if an app tab ever lands on another URL, send it home.
+    if (app) wc.on('did-navigate', (_e, target) => { if (appNameOf(target) !== app) wc.loadURL(`superweb://${app}/`).catch(() => {}); });
     wc.on('will-frame-navigate', (e) => { if (!app && isAppUrl(e.url)) e.preventDefault(); });
     this.tabs.set(id, tab);
     this.order.push(id);
@@ -221,8 +223,18 @@ export class TabManager {
     return this.navigateTab(this.activeId, url);
   }
 
+  /** Loads a URL the user typed: an app tab never turns into a web page (it keeps its bridge), so web URLs open a new tab. */
+  load(id, url) {
+    const tab = this.tabs.get(id);
+    if (!tab) return this.create(url);
+    if (tab.app && appNameOf(url) !== tab.app) return this.create(url);
+    tab.view.webContents.loadURL(url).catch(() => {});
+    return id;
+  }
+
   async navigateTab(id, url) {
     const tab = this.tabs.get(id);
+    if (tab?.app) throw new Error('built-in tool pages cannot be navigated by the agent');
     if (!tab) {
       const created = this.create(url);
       await this.waitForLoad(this.tabs.get(created).view.webContents);
