@@ -25,6 +25,7 @@ export const DEFAULTS = {
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
   superai: { enabled: false, url: '' }, // SuperAI integration; url '' = discover the running app (token lives in keys)
   translate: { target: 'zh-Hant', mode: 'bilingual' }, // live page translation
+  api: { enabled: false, port: 39218, token: '' }, // local REST API (off by default)
   homepage: 'https://superai.ky',
   searchTemplate: DEFAULT_SEARCH,
 };
@@ -43,6 +44,7 @@ export class Settings {
         mcp: { ...DEFAULTS.mcp, ...saved.mcp },
         superai: { ...DEFAULTS.superai, ...saved.superai },
         translate: { ...DEFAULTS.translate, ...saved.translate },
+        api: { ...DEFAULTS.api, ...saved.api },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
           notion: { ...DEFAULTS.integrations.notion, ...saved.integrations?.notion },
@@ -119,6 +121,17 @@ export class Settings {
       }
       if (patch.mcp.regenerateToken || (mcp.enabled && !mcp.token)) mcp.token = newToken();
       this.data.mcp = mcp;
+    }
+    if (patch.api) {
+      const api = { ...DEFAULTS.api, ...this.data.api };
+      if (patch.api.enabled !== undefined) api.enabled = Boolean(patch.api.enabled);
+      if (patch.api.port !== undefined) {
+        const port = Number(patch.api.port);
+        if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('API 埠號要在 1024–65535');
+        api.port = port;
+      }
+      if (patch.api.regenerateToken || (api.enabled && !api.token)) api.token = newToken();
+      this.data.api = api;
     }
     if (patch.translate) {
       const cur = { ...DEFAULTS.translate, ...this.data.translate };

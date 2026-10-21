@@ -1,0 +1,9 @@
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.result { margin-top: 12px; min-height: 2em; }
+.big { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.up { color: var(--ok); } .down { color: var(--bad); }
+.days { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; font-size: 12px; text-align: center; }
+.days div { background: var(--alt); border-radius: 8px; padding: 6px 2px; }
+pre { background: var(--alt); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 12px; white-space: pre; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all; }
+h3 { font-size: 13px; margin: 14px 0 6px; }

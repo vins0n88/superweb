@@ -15,6 +15,9 @@ import { createGameMode } from './game.js';
 import { createMail } from './mail.js';
 import { createProxy } from './proxy.js';
 import { AGENT_PARTITION } from './tabs.js';
+import { createRestApi, API_DEFAULT_PORT } from './rest-api.js';
+import { createTaskTools } from './mcp-tasks.js';
+import { listTemplates } from './templates.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
@@ -22,6 +25,7 @@ export const APPS = {
   mail: { title: '郵箱', icon: '✉' },
   extensions: { title: '擴充：MCP 服務與技能', icon: '🧩' },
   proxy: { title: '網路與代理', icon: '🌐' },
+  data: { title: '數據與 API', icon: '📊' },
   player: { title: '影音播放器', icon: '▶' },
 };
 
@@ -35,7 +39,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, dataDir, srcDir, notify }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jobs, version, dataDir, srcDir, notify }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -233,6 +237,49 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     ]).popup({ window: win });
   });
 
+  // ---- Data sources & local REST API ----
+  const taskTools = createTaskTools({ jobs, activeUrl: () => getTabs().activeUrl(), audit: writeAudit });
+  let api = null;
+  let apiState = { running: false, port: null, error: '' };
+  async function syncApi() {
+    await api?.stop().catch(() => {});
+    api = null;
+    apiState = { running: false, port: null, error: '' };
+    const cfg = settings.data.api;
+    if (!cfg.enabled || !cfg.token) return apiInfo();
+    const server = createRestApi({
+      port: cfg.port, token: cfg.token, version, audit: writeAudit,
+      handlers: {
+        templates: () => listTemplates(),
+        runTask: (body) => taskTools.runJson(body),
+        getTask: (id, wait) => taskTools.getJson(id, wait),
+        extract: (body) => taskTools.runJson({ template_id: 'extract-table', values: { what: body.what ?? '', pages: String(body.pages ?? 1) }, start_url: body.url, wait_seconds: body.wait_seconds }),
+        data,
+      },
+    });
+    try {
+      apiState = { running: true, port: await server.start(), error: '' };
+      api = server;
+    } catch (err) {
+      apiState = { running: false, port: null, error: err.code === 'EADDRINUSE' ? `埠 ${cfg.port} 已被佔用` : err.message };
+    }
+    return apiInfo();
+  }
+  const apiInfo = () => ({ ...apiState, enabled: settings.data.api.enabled, port: settings.data.api.port, token: settings.data.api.token, defaultPort: API_DEFAULT_PORT });
+  syncApi();
+  router.register('data', {
+    fx: (q) => data.exchangeRate(q),
+    weather: (q) => data.weather(q),
+    stock: (q) => data.stockQuote(q),
+    crypto: (q) => data.cryptoPrice(q),
+    apiInfo,
+    async setApi({ enabled, port, regenerate } = {}) {
+      settings.update({ api: { ...(enabled !== undefined ? { enabled } : {}), ...(port ? { port } : {}), ...(regenerate ? { regenerateToken: true } : {}) } });
+      settings.save();
+      return syncApi();
+    },
+  });
+
   // ---- H5 game mode ----
   const game = createGameMode({ getTabs, getWin, send });
   ipcMain.handle('game:state', () => game.state());
@@ -304,5 +351,5 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     if (win) Menu.buildFromTemplate(items).popup({ window: win });
   }
 
-  return { contextMenu, translator, openApp, router };
+  return { contextMenu, translator, openApp, router, stopApi: () => api?.stop() };
 }

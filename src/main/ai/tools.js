@@ -7,6 +7,7 @@ import { SUPERAI_TOOL_DEFS } from '../superai-client.js';
 import { DOC_TOOL_DEFS } from '../documents.js';
 import { CALENDAR_TOOL_DEFS } from '../calendar.js';
 import { SKILL_TOOL_DEFS } from '../extensions.js';
+import { DATA_TOOL_DEFS } from '../data-sources.js';
 
 const ref = { type: 'integer', description: 'Element ref number from the latest snapshot, e.g. 12 for [12]' };
 
@@ -169,7 +170,7 @@ export const TOOL_DEFS = [
 ];
 
 // SuperAI tools are offered to the model only while the SuperAI connection is on (agent-host).
-const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS, ...SKILL_TOOL_DEFS].map((d) => [d.name, d]));
+const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS, ...SKILL_TOOL_DEFS, ...DATA_TOOL_DEFS].map((d) => [d.name, d]));
 
 /** Tools that come and go at runtime (user-added MCP servers). */
 const DYNAMIC = new Map();
@@ -264,6 +265,10 @@ export function describeCall(name, input, label = '') {
     case 'superai_run_skill': return `Run SuperAI skill "${input.skill}" on: "${String(input.input ?? '').slice(0, 60)}${String(input.input ?? '').length > 60 ? '…' : ''}"`;
     case 'superai_get_task': return `Check SuperAI task ${input.task_id}`;
     case 'load_skill': return `Load skill "${input.name}"`;
+    case 'get_exchange_rate': return `Exchange rate ${input.from} → ${input.to}`;
+    case 'get_weather': return `Weather: ${input.city}`;
+    case 'get_stock_quote': return `Stock quote: ${input.symbol}`;
+    case 'get_crypto_price': return `Crypto price: ${input.coins}`;
     default: return DYNAMIC.get(name)?.label ? `${DYNAMIC.get(name).label}${Object.keys(input ?? {}).length ? ` ${JSON.stringify(input).slice(0, 80)}` : ''}` : name;
   }
 }

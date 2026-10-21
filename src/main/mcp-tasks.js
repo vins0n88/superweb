@@ -75,6 +75,20 @@ export function formatJob(job) {
   return lines.join('\n');
 }
 
+/** Job as plain JSON for the REST API. */
+export function jobJson(job) {
+  const r = job.result;
+  const running = ['queued', 'running', 'waiting'].includes(job.status);
+  return {
+    job_id: job.id, status: job.status, ...(job.error ? { error: job.error } : {}),
+    ...(running ? { last_step: job.lastStep || '' } : {
+      answer: r?.text ?? '',
+      tables: (r?.tables ?? []).map((t) => ({ title: t.title, columns: t.columns, rows: t.rows })),
+      verification: r?.verification ? { counts: r.verification.counts, items: r.verification.items } : null,
+    }),
+  };
+}
+
 /**
  * @param {object} deps
  * @param {import('./jobs.js').JobManager} deps.jobs
@@ -87,7 +101,7 @@ export function createTaskTools({ jobs, activeUrl, audit }) {
     await Promise.race([job.done, new Promise((r) => setTimeout(r, seconds * 1000))]);
   }
 
-  async function runTask(args) {
+  async function runTask(args, source = 'mcp') {
     let prompt = typeof args.task === 'string' ? args.task.trim() : '';
     let extraDomains = [];
     let template = null;
@@ -101,8 +115,8 @@ export function createTaskTools({ jobs, activeUrl, audit }) {
     }
     if (!prompt) return { content: 'Give a task, or a template_id with its values.', isError: true };
     const startUrl = typeof args.start_url === 'string' && isHttpUrl(args.start_url) ? args.start_url : activeUrl();
-    const job = jobs.start({ name: `[MCP] ${name || prompt.slice(0, 50)}`, prompt, startUrl, extraDomains, template, source: 'mcp' });
-    audit({ source: 'mcp', type: 'mcp_task', summary: prompt.slice(0, 300), jobId: job.id });
+    const job = jobs.start({ name: `[${source === 'api' ? 'API' : 'MCP'}] ${name || prompt.slice(0, 50)}`, prompt, startUrl, extraDomains, template, source });
+    audit({ source, type: `${source}_task`, summary: prompt.slice(0, 300), jobId: job.id });
     await waitFor(jobs.jobs.get(job.id), clampWait(args.wait_seconds, DEFAULT_WAIT_S));
     return { content: formatJob(jobs.jobs.get(job.id)) };
   }
@@ -120,6 +134,18 @@ export function createTaskTools({ jobs, activeUrl, audit }) {
   }
 
   return {
+    /** REST API: same task start as run_task, JSON results. */
+    async runJson(args = {}) {
+      const res = await runTask(args, 'api');
+      if (res.isError) throw new Error(res.content);
+      return jobJson(jobs.jobs.get(/job_id: (\S+)/.exec(res.content)[1]));
+    },
+    async getJson(id, wait = 0) {
+      const job = jobs.jobs.get(String(id));
+      if (!job) throw Object.assign(new Error(`no job ${id}`), { status: 404 });
+      await waitFor(job, clampWait(wait, 0));
+      return jobJson(job);
+    },
     async call(name, args = {}) {
       try {
         if (name === 'run_task') return await runTask(args);

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>數據與 API</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="data.css">
+</head>
+<body>
+<div class="page">
+  <div class="head"><h1>📊 數據與 API</h1></div>
+  <p class="muted small">以下數據也能直接問 AI，例如「美元兌台幣多少？」「明天台北會下雨嗎？」「台積電現在多少錢？」。</p>
+  <div class="cards">
+    <section class="card">
+      <h2>匯率換算</h2>
+      <form id="fx-form" class="row">
+        <input name="amount" type="number" value="100" step="any" style="width:7em" aria-label="金額">
+        <input name="from" value="USD" maxlength="3" style="width:5em" aria-label="從">
+        <span>→</span>
+        <input name="to" value="TWD" maxlength="3" style="width:5em" aria-label="到">
+        <button class="btn primary">換算</button>
+      </form>
+      <div class="result" id="fx-out"></div>
+    </section>
+    <section class="card">
+      <h2>天氣</h2>
+      <form id="wx-form" class="row"><input name="city" value="台北" aria-label="城市"><button class="btn primary">查詢</button></form>
+      <div class="result" id="wx-out"></div>
+    </section>
+    <section class="card">
+      <h2>股價</h2>
+      <form id="stock-form" class="row"><input name="symbol" value="2330.TW" aria-label="代號" style="width:8em"><button class="btn primary">查詢</button><button class="btn" type="button" id="watch-add">＋ 自選</button></form>
+      <div class="result" id="stock-out"></div>
+      <ul class="list" id="watch"></ul>
+      <p class="muted small">美股如 AAPL，台股加 .TW（如 2330.TW），港股加 .HK。資料來源 Yahoo Finance，可能延遲，僅供參考。</p>
+    </section>
+    <section class="card">
+      <h2>加密貨幣</h2>
+      <form id="crypto-form" class="row"><input name="coins" value="bitcoin, ethereum" aria-label="幣種"><input name="vs" value="usd,twd" style="width:7em" aria-label="計價"><button class="btn primary">查詢</button></form>
+      <div class="result" id="crypto-out"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="row"><h2 class="grow">對外 API</h2><label class="row"><input type="checkbox" id="api-on"> 開啟</label></div>
+    <p class="muted small">讓你自己的程式（Python、腳本、自動化工具）呼叫 SuperWeb：執行瀏覽任務或範本、擷取網頁表格、查詢上面的數據。只接受本機連線與權杖，網頁無法呼叫。</p>
+    <p class="small" id="api-state"></p>
+    <div id="api-detail" hidden>
+      <div class="row"><span class="muted small">權杖</span><code id="api-token" class="grow"></code><button class="btn small" id="copy-token">複製</button><button class="btn small" id="regen">重新產生</button></div>
+      <h3>範例</h3>
+      <pre id="examples"></pre>
+      <p class="muted small">完整說明：<code id="openapi"></code>（OpenAPI 3，需帶權杖）</p>
+    </div>
+  </section>
+</div>
+<script src="data.js" type="module"></script>
+</body>
+</html>
