@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SuperWeb</title>
-<meta name="description" content="SuperWeb 是 SuperAI 出品的 AI 瀏覽器：先讀懂網頁結構再動手，每一步都可預覽、批准與稽核。支援 Claude、OpenAI 與本機 Ollama，並能和 SuperAI 互相調用。">
+<meta name="description" content="SuperWeb 是 SuperAI 出品的 AI 瀏覽器：先讀懂網頁結構再動手，每一步都可預覽、批准與稽核。支援 Claude、OpenAI 與本機 Ollama，內建世界監控首頁、收藏夾、翻譯、日曆、郵箱、錢包，並能和 SuperAI、賈維斯互相調用。">
 <meta property="og:title" content="SuperWeb — 會讀懂網頁結構的 AI 瀏覽器">
 <meta property="og:description" content="擷取、比價、填表、研究、排程監控。先讀結構再動手，每一步都經你批准。">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -21,11 +21,12 @@
       <span>SuperWeb</span>
     </a>
     <nav class="nav" aria-label="主選單">
+      <a href="#features">功能</a>
       <a href="#templates">範本</a>
       <a href="#together">搭配 SuperAI</a>
       <a href="#own">隱私與安全</a>
     </nav>
-    <a class="btn btn-small js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.4.1/SuperWeb-0.4.1-arm64.dmg">下載</a>
+    <a class="btn btn-small js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.6.0/SuperWeb-0.6.0-arm64.dmg">下載</a>
   </div>
 </header>
 
@@ -33,7 +34,7 @@
   <!-- Hero: one thesis line, then the product's own input box as a live demo -->
   <section class="hero">
     <div class="wrap">
-      <p class="eyebrow">SuperAI 出品 · macOS 版 v0.4.1</p>
+      <p class="eyebrow">SuperAI 出品 · macOS 版 v0.6.0</p>
       <h1>會讀懂網頁結構的<br>AI 瀏覽器</h1>
       <p class="lede">交代一件網頁上的事，SuperWeb 先讀懂頁面、列出計畫，經你批准後一步步做完，最後自己檢查結果。</p>
 
@@ -58,14 +59,40 @@
       </div>
 
       <div class="cta-row">
-        <a class="btn js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.4.1/SuperWeb-0.4.1-arm64.dmg">下載 macOS 版</a>
+        <a class="btn js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.6.0/SuperWeb-0.6.0-arm64.dmg">下載 macOS 版</a>
         <span class="fine">Apple Silicon · 免費 · 自帶 API key 或用本機模型</span>
       </div>
     </div>
   </section>
 
+  <!-- Everything else the browser does, all one right-click away -->
+  <section id="features" class="band">
+    <div class="wrap">
+      <h2>畫面乾淨，功能都在右鍵</h2>
+      <p class="sub">工具列只留網址列、☆ 收藏和 ✦ AI。其餘功能都在右鍵選單或 ☰ 裡，選單會依你指著的東西調整：選了文字就給翻譯和解釋，指著連結就給收藏和開新分頁。</p>
+      <div class="cards">
+        <article class="card"><h3>世界監控首頁</h3><p>開啟就是即時全球新聞、市場與地緣政治儀表板，六個版本隨時切換</p><span class="tag">首頁</span></article>
+        <article class="card"><h3>收藏夾</h3><p>多層資料夾、拖曳整理、搜尋，匯入匯出各家瀏覽器的書籤</p><span class="tag">瀏覽</span></article>
+        <article class="card"><h3>即時翻譯</h3><p>整頁雙語對照，捲到哪翻到哪；選取文字右鍵就翻</p><span class="tag">閱讀</span></article>
+        <article class="card"><h3>文件 AI 分析</h3><p>PDF、Word、Excel 拖進來，摘要、找風險、整理成表，附出處</p><span class="tag">閱讀</span></article>
+        <article class="card"><h3>賈維斯 Jarvis</h3><p>把對話或任務交給你自己架的 Jarvis 2.0 多代理系統，取回結果</p><span class="tag">AI</span></article>
+        <article class="card"><h3>日曆與課程表</h3><p>週、月、課程表檢視，上課提醒，AI 幫你排進行程</p><span class="tag">工具</span></article>
+        <article class="card"><h3>郵箱</h3><p>連接 Gmail、iCloud、Outlook 等，AI 摘要與擬回信，寄出由你按</p><span class="tag">工具</span></article>
+        <article class="card"><h3>錢包</h3><p>資產總覽與記帳；Web3 錢包，交易先預覽再用 Touch ID 送出</p><span class="tag">工具</span></article>
+        <article class="card"><h3>數據與 API</h3><p>匯率、天氣、股價、加密貨幣；本機 REST API 讓你的程式呼叫</p><span class="tag">數據</span></article>
+        <article class="card"><h3>影音播放器</h3><p>本機音樂影片播放清單，網頁影音一鍵子母畫面</p><span class="tag">工具</span></article>
+      </div>
+      <div class="more">
+        <p><b>H5 遊戲模式</b>全螢幕、手機直橫向版面、觸控與靜音。</p>
+        <p><b>MCP 與技能</b>加入 MCP 服務和 SKILL.md，AI 立刻會用。</p>
+        <p><b>網路與代理</b>HTTP、SOCKS5、依網站分流，可匯入 Clash 設定。</p>
+        <p><b>工具頁隔離</b>錢包、郵箱等工具頁網頁碰不到，AI 也不能操作。</p>
+      </div>
+    </div>
+  </section>
+
   <!-- Specialists → templates -->
-  <section id="templates" class="band">
+  <section id="templates">
     <div class="wrap">
       <h2>十個範本，填幾個欄位就開工</h2>
       <p class="sub">每個範本都附程式核對：比價由程式比數字，填表逐欄對照你的資料，清單會數清楚翻了幾頁。</p>
@@ -91,7 +118,7 @@
   </section>
 
   <!-- Co-working room: SuperWeb × SuperAI -->
-  <section id="together">
+  <section id="together" class="band">
     <div class="wrap pair">
       <div class="pair-copy">
         <h2>瀏覽器和你的 AI 同事一起工作</h2>
@@ -100,6 +127,7 @@
           <li>SuperAI 的專家可以把整個瀏覽任務交給 SuperWeb，拿回表格與驗證結果</li>
           <li>SuperWeb 交給 SuperAI 的每一筆資料都先經你批准，任務照常出現在 SuperAI 的任務列表</li>
           <li>兩個 App 都在你的電腦上，透過本機 MCP 連接</li>
+          <li>也能把工作交給你自己架的賈維斯 Jarvis 2.0，同樣先經你批准</li>
         </ul>
       </div>
       <figure class="room" aria-label="協作範例：使用者同時請 SuperWeb 與 SuperAI 處理比價與購買建議">
@@ -112,7 +140,7 @@
   </section>
 
   <!-- Own your intelligence -->
-  <section id="own" class="band">
+  <section id="own">
     <div class="wrap own">
       <div>
         <h2>你的資料，你作主</h2>
@@ -134,7 +162,7 @@
       <div>
         <h2>現在就試試 SuperWeb</h2>
         <p class="sub">適用於 Apple Silicon（M 系列晶片）的 Mac。</p>
-        <a class="btn js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.4.1/SuperWeb-0.4.1-arm64.dmg">下載 v0.4.1（133 MB）</a>
+        <a class="btn js-dmg" href="https://github.com/vins0n88/superweb/releases/download/v0.6.0/SuperWeb-0.6.0-arm64.dmg">下載 v0.6.0（168 MB）</a>
         <p class="fine"><a href="https://github.com/vins0n88/superweb/releases">所有版本與更新紀錄</a></p>
       </div>
       <div class="notes">
@@ -143,7 +171,7 @@
         <h3>模型設定</h3>
         <p>在設定裡選 Claude、OpenAI 或 OpenAI 相容服務並填入 API key；或安裝 Ollama 用本機模型。正式工作建議用 Claude。</p>
         <h3>檔案驗證</h3>
-        <p class="hash"><span>SHA-256</span><code>d06ba10e3b415decc306b56f35e11682fedf376705c69c3ba4adf91763317b53</code></p>
+        <p class="hash"><span>SHA-256</span><code>e49d1193a4d551fb5368aff11df6964c3821483698fef52ec9dd2a1ea7a0274a</code></p>
       </div>
     </div>
   </section>

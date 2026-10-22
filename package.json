@@ -1,6 +1,6 @@
 {
   "name": "superweb",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "AI browser: structure-first page understanding with a multi-provider AI side panel",
   "private": true,
   "type": "module",
