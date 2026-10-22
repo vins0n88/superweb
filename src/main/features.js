@@ -22,6 +22,7 @@ import { registerWallet } from './wallet-features.js';
 import { createBookmarks, ROOT } from './bookmarks.js';
 import { buildMenu } from './menus.js';
 import { WORLD_MONITOR_VARIANTS, variantUrl, isWorldMonitor } from './worldmonitor.js';
+import { registerAdblock } from './adblock-setup.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
@@ -253,6 +254,8 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     ];
   }
 
+  const { adblockItems } = registerAdblock({ ipcMain, settings, dataDir, getTabs, notify });
+
   // ---- Data sources & local REST API ----
   const taskTools = createTaskTools({ jobs, activeUrl: () => getTabs().activeUrl(), audit: writeAudit });
   let api = null;
@@ -429,7 +432,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
 
   // ---- The right-click menu (also ☰ and right-click on the browser chrome) ----
   const menuFeatures = {
-    translator, game, proxyItems, apps: APPS, openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
+    translator, game, proxyItems, adblockItems, apps: APPS, openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
     target: () => settings.data.translate.target,
     translateSelection: (tab, text) => translateSelection(tab, text),
     openTab: (url) => getTabs().create(url),

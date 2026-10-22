@@ -15,6 +15,8 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
+    "@ghostery/adblocker": "2.18.2",
+    "@ghostery/adblocker-electron": "2.18.2",
     "ethers": "6.17.0",
     "exceljs": "4.4.0",
     "imapflow": "2.2.6",
@@ -80,6 +82,16 @@
         "width": 560,
         "height": 380
       }
+    }
+  },
+  "overrides": {
+    "@ghostery/adblocker": "2.18.2",
+    "@ghostery/adblocker-electron-preload": "2.18.2",
+    "@ghostery/adblocker-content": "2.18.2",
+    "@ghostery/adblocker-extended-selectors": "2.18.2",
+    "tldts-experimental": {
+      ".": "7.4.12",
+      "tldts-core": "7.4.12"
     }
   }
 }

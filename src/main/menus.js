@@ -7,7 +7,7 @@
  * @param {object|null} ctx.tab  active/target tab (null when none)
  * @param {object} [ctx.params]  Electron context-menu params (selectionText, linkURL, isEditable, …)
  * @param {(action: string) => void} ctx.panel  runs an AI-panel action in the renderer
- * @param {object} ctx.f  feature handles: translator, game, proxyItems, apps, openApp, bookmarks, languages, target, translateSelection, openTab, jarvis
+ * @param {object} ctx.f  feature handles: translator, game, proxyItems, adblockItems, apps, openApp, bookmarks, languages, target, translateSelection, openTab, jarvis
  */
 export function buildMenu({ tab, params = {}, panel, f }) {
   const items = [];
@@ -73,6 +73,8 @@ export function buildMenu({ tab, params = {}, panel, f }) {
     const on = f.translator.isOn(tab.id);
     items.push({ label: on ? '顯示原文（停止翻譯）' : `翻譯這一頁成${f.languages[f.target()] ?? ''}`, click: () => f.translator.toggle(tab.id) });
   }
+
+  items.push({ label: '去廣告', submenu: f.adblockItems(tab) });
 
   // Bookmarks
   const folders = f.bookmarks.folderPaths();

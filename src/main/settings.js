@@ -29,6 +29,7 @@ export const DEFAULTS = {
   api: { enabled: false, port: 39218, token: '' }, // local REST API (off by default)
   walletDapp: false, // websites may ask to connect to the wallet (window.ethereum)
   jarvis: { url: 'http://127.0.0.1:18900', repo: '' }, // JARVIS 2.0 gateway; repo '' = ~/Downloads/Jarvis-2.0-main
+  adblock: { enabled: true, allow: [] }, // ad & tracker blocking; allow = sites where it is off
   homepage: WORLD_MONITOR_HOME, // World Monitor (v0.6); users can change it in Settings
   searchTemplate: DEFAULT_SEARCH,
 };
@@ -49,6 +50,7 @@ export class Settings {
         translate: { ...DEFAULTS.translate, ...saved.translate },
         api: { ...DEFAULTS.api, ...saved.api },
         jarvis: { ...DEFAULTS.jarvis, ...saved.jarvis },
+        adblock: { ...DEFAULTS.adblock, ...saved.adblock },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
           notion: { ...DEFAULTS.integrations.notion, ...saved.integrations?.notion },
@@ -130,6 +132,16 @@ export class Settings {
       }
       if (patch.mcp.regenerateToken || (mcp.enabled && !mcp.token)) mcp.token = newToken();
       this.data.mcp = mcp;
+    }
+    if (patch.adblock) {
+      const a = { ...DEFAULTS.adblock, ...this.data.adblock };
+      if (patch.adblock.enabled !== undefined) a.enabled = Boolean(patch.adblock.enabled);
+      if (patch.adblock.allow !== undefined) {
+        if (!Array.isArray(patch.adblock.allow)) throw new Error('allowlist must be a list');
+        a.allow = [...new Set(patch.adblock.allow.map((e) => String(e).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, ''))
+          .filter((e) => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(e)))].slice(0, MAX_SITE_ENTRIES);
+      }
+      this.data.adblock = a;
     }
     if (patch.walletDapp !== undefined) this.data.walletDapp = Boolean(patch.walletDapp);
     if (patch.jarvis) {
