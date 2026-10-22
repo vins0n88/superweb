@@ -116,21 +116,30 @@ test('Jarvis: token from /auth/token, chat round-trip by session, no-agents erro
   const fetchImpl = async (url) => (url.endsWith('/auth/token') ? new Response(JSON.stringify({ token: 'jt' })) : new Response('{"ok":true}'));
   const j = createJarvis({ config: () => ({ url: 'http://127.0.0.1:18900', repo: '/nope', token: '' }), fetchImpl, WebSocketImpl: FakeWS });
   let polls = 0;
+  let workers = [];
   FakeWS.server = (ws, msg) => setTimeout(() => {
     if (msg.method === 'chat.send') {
       ws.reply({ type: 'res', id: msg.id, result: { messageId: 'm1' } });
       ws.reply({ type: 'event', event: 'chat.message', payload: { from: 'superweb', content: msg.params.content, sessionId: msg.params.sessionId } });
-      ws.reply({ type: 'event', event: 'chat.message', payload: { from: 'agent-smith', content: 'other conversation', sessionId: 'x' } });
-      ws.reply({ type: 'event', event: 'chat.message', payload: { from: 'jarvis', content: '收到，已排程。', sessionId: msg.params.sessionId } });
-    } else if (msg.method === 'tasks.create') ws.reply({ type: 'res', id: msg.id, result: { taskId: 't-9' } });
+      ws.reply({ type: 'event', event: 'chat.message', payload: { from: 'agent-smith', content: 'other conversation', to: 'user', metadata: { sessionId: 'x' } } });
+      ws.reply({ type: 'event', event: 'chat.message', payload: { from: 'jarvis', content: '收到，已排程。', to: 'user', metadata: { sessionId: msg.params.sessionId } } });
+    } else if (msg.method === 'tasks.create') {
+      ws.reply({ type: 'res', id: msg.id, result: { taskId: msg.params.title === '事件' ? 't-10' : 't-9' } });
+      if (msg.params.title === '事件') setTimeout(() => ws.reply({ type: 'event', event: 'task.completed', payload: { taskId: 't-10', success: true, output: '蘋果\n香蕉' } }), 5);
+    }
+    else if (msg.method === 'tasks.status' && msg.params.taskId === 't-10') ws.reply({ type: 'res', id: msg.id, result: { task: { status: 'completed' }, result: null } });
     else if (msg.method === 'tasks.status') ws.reply({ type: 'res', id: msg.id, result: ++polls < 2 ? { task: { status: 'running' }, result: null } : { task: { status: 'completed' }, result: { output: '報告完成' } } });
-    else if (msg.method === 'agents.list') ws.reply({ type: 'res', id: msg.id, result: [{ identity: { agentId: 'jarvis', role: 'orchestrator' }, status: 'idle' }] });
+    else if (msg.method === 'agents.list') ws.reply({ type: 'res', id: msg.id, result: [{ identity: { agentId: 'jarvis', role: 'orchestrator' }, status: 'idle' }, ...workers] });
   }, 1);
   assert.equal(await j.callTool('jarvis_chat', { message: '每天 9 點整理新聞' }), 'Reply from jarvis:\n收到，已排程。');
   assert.match(FakeWS.instances.at(-1).url, /^ws:\/\/127\.0\.0\.1:18900\/ws\?token=jt$/);
   assert.equal(FakeWS.instances.at(-1).closed, true);
   assert.equal(await j.callTool('jarvis_agents', {}), '- jarvis (orchestrator): idle');
-  assert.equal(await j.callTool('jarvis_task', { title: '週報' }), 'Task t-9 completed:\n"報告完成"');
+  await assert.rejects(j.callTool('jarvis_task', { title: '週報' }), /沒有工作代理在線上/);
+  workers = [{ identity: { agentId: 'agent-smith', role: 'dev' }, status: 'idle' }];
+  assert.equal(await j.callTool('jarvis_task', { title: '週報' }), 'Task t-9 completed:\n報告完成');
+  assert.deepEqual(FakeWS.instances.at(-1).sent.find((m) => m.method === 'tasks.create').params.requiredCapabilities, []);
+  assert.equal(await j.callTool('jarvis_task', { title: '事件' }), 'Task t-10 completed:\n蘋果\n香蕉');
   FakeWS.server = (ws, msg) => setTimeout(() => {
     ws.reply({ type: 'res', id: msg.id, result: { messageId: 'm2' } });
     ws.reply({ type: 'event', event: 'chat.message', payload: { from: 'system', to: 'user', content: 'No agents are currently online. Start an agent first' } });

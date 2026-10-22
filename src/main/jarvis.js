@@ -136,7 +136,8 @@ export function createJarvis({ config, fetchImpl = fetch, WebSocketImpl = global
         const timer = setTimeout(() => resolve({ status: 'waiting', text: '賈維斯還在處理，回覆會出現在賈維斯控制台。' }), wait(ws));
         onEvent((event, p) => {
           if (event !== 'chat.message' || !p?.content || p.from === 'superweb') return;
-          const ours = p.sessionId === sessionId || p.to === 'superweb';
+          // Agents echo our sessionId in metadata (older gateways put it at the top level).
+          const ours = (p.metadata?.sessionId ?? p.sessionId) === sessionId || p.to === 'superweb';
           if (p.from === 'system' && /No agents are currently online/i.test(p.content)) {
             clearTimeout(timer);
             reject(new Error('賈維斯目前沒有代理在線上：請在賈維斯控制台啟動代理'));
@@ -149,19 +150,38 @@ export function createJarvis({ config, fetchImpl = fetch, WebSocketImpl = global
       }));
     },
 
-    /** Creates a task and polls its status until it has a result. */
+    /** Creates a task and waits for its task.completed/failed event (polling status as a fallback). */
     async task({ title, description = '', priority = 'normal', wait_seconds: ws }) {
-      return session(async (call) => {
-        const created = await call('tasks.create', { title: String(title).slice(0, 200), description: String(description).slice(0, 20000), priority });
+      return session(async (call, onEvent) => {
+        // The gateway broadcasts the agent's output but does not always store it, so keep the events.
+        const finished = new Map();
+        onEvent((event, p) => {
+          if ((event === 'task.completed' || event === 'task.failed') && p?.taskId) finished.set(p.taskId, { event, p });
+        });
+        const fromEvent = (taskId) => {
+          const { event, p } = finished.get(taskId);
+          const out = p.output ?? p.error ?? '';
+          return { status: event === 'task.failed' ? 'failed' : 'completed', taskId, text: (typeof out === 'string' ? out : JSON.stringify(out, null, 1)).slice(0, 20000) };
+        };
+        // Jarvis itself only orchestrates; tasks run on worker agents (often on other machines).
+        const res = await call('agents.list');
+        const workers = (Array.isArray(res) ? res : res?.agents ?? []).filter((a) => (a.identity?.agentId ?? a.agentId ?? a.id) !== 'jarvis' && a.status !== 'offline');
+        if (!workers.length) throw new Error('賈維斯目前沒有工作代理在線上，任務無法執行：請改用對話交給賈維斯，或先啟動 agent-smith／agent-johny');
+        const created = await call('tasks.create', { title: String(title).slice(0, 200), description: String(description).slice(0, 20000), priority, requiredCapabilities: [] });
         const taskId = created?.taskId ?? created?.id ?? created?.task?.id;
         if (!taskId) return { status: 'created', text: JSON.stringify(created).slice(0, 500) };
         const deadline = Date.now() + wait(ws);
         while (Date.now() < deadline) {
+          if (finished.has(taskId)) return fromEvent(taskId);
           const { task, result } = (await call('tasks.status', { taskId })) ?? {};
+          if (finished.has(taskId)) return fromEvent(taskId);
           if (result || /^(completed|done|failed|cancelled)$/i.test(task?.status ?? '')) {
-            return { status: task?.status ?? 'completed', taskId, text: typeof result === 'string' ? result : JSON.stringify(result?.output ?? result ?? task, null, 1).slice(0, 20000) };
+            if (!result) await new Promise((r) => setTimeout(r, 2000)); // the result event may still be on its way
+            if (finished.has(taskId)) return fromEvent(taskId);
+            const out = result?.output ?? result ?? `（賈維斯沒有回傳內容，狀態：${task?.status}）`;
+            return { status: task?.status ?? 'completed', taskId, text: (typeof out === 'string' ? out : JSON.stringify(out, null, 1)).slice(0, 20000) };
           }
-          await new Promise((r) => setTimeout(r, 3000));
+          await new Promise((r) => setTimeout(r, 1000));
         }
         return { status: 'running', taskId, text: `任務 ${taskId} 還在執行，可在賈維斯控制台查看。` };
       });
