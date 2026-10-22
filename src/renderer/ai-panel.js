@@ -35,9 +35,9 @@ export function initAiPanel({ api, openLink, onBackground }) {
   const toolEls = new Map();
 
   function showEmpty() {
-    messages.innerHTML = `<div class="empty-state"><strong>Browse with an AI agent</strong>
-      Ask about this page, run a task template (▤), or describe a job:
-      "compare these 3 stores' prices and make a table". Actions are previewed as a plan and need your approval.</div>`;
+    messages.innerHTML = `<div class="empty-state"><strong>交給 AI 處理網頁上的事</strong>
+      問這一頁的內容，或描述一件工作，例如「比較這三家店的價格並整理成表」。動手前會先列出計畫，經你批准才執行。
+      <br><br>摘要、翻譯、範本、技能、收藏、工具等所有功能都在<b>右鍵選單</b>（或右上角 ☰）。</div>`;
   }
 
   function clearEmpty() {

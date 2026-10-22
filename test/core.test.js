@@ -108,9 +108,18 @@ test('markdown renderer turns <url> autolinks into links', () => {
   assert.match(renderMarkdown('see <https://iana.org/help>'), /see\s+<a data-href="https:\/\/iana.org\/help">https:\/\/iana.org\/help<\/a>/);
 });
 
-test('settings: default homepage is superai.ky', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'superweb-'));
-  assert.equal(new Settings(dir, fakeSafeStorage()).publicView().homepage, 'https://superai.ky');
+test('settings: World Monitor is the start page; the old default moves over once, a chosen page stays', () => {
+  const fresh = fs.mkdtempSync(path.join(os.tmpdir(), 'superweb-'));
+  assert.equal(new Settings(fresh, fakeSafeStorage()).publicView().homepage, 'https://www.worldmonitor.app/');
+  const old = fs.mkdtempSync(path.join(os.tmpdir(), 'superweb-'));
+  fs.writeFileSync(path.join(old, 'superweb-settings.json'), JSON.stringify({ homepage: 'https://superai.ky' }));
+  const s = new Settings(old, fakeSafeStorage());
+  assert.equal(s.data.homepage, 'https://www.worldmonitor.app/');
+  s.update({ homepage: 'https://superai.ky' });
+  assert.equal(new Settings(old, fakeSafeStorage()).data.homepage, 'https://superai.ky', 'switching back sticks');
+  const chosen = fs.mkdtempSync(path.join(os.tmpdir(), 'superweb-'));
+  fs.writeFileSync(path.join(chosen, 'superweb-settings.json'), JSON.stringify({ homepage: 'https://news.example.com' }));
+  assert.equal(new Settings(chosen, fakeSafeStorage()).data.homepage, 'https://news.example.com');
 });
 
 test('markdown renderer turns [§n] citations into jump links', () => {

@@ -1,0 +1,17 @@
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.tree { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.tree li button { width: 100%; text-align: left; border: 0; background: none; color: var(--ink); font: inherit; padding: 5px 8px; border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree li button:hover { background: var(--alt); }
+.tree li button.on { background: var(--accent-soft); }
+.tree li button.drop { outline: 2px dashed var(--accent); }
+.tree .count { color: var(--muted); font-size: 11px; }
+.add { margin: 10px 0; }
+.item .grow a { color: var(--ink); text-decoration: none; }
+.item .grow a:hover { text-decoration: underline; }
+.item .url { display: block; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item img { width: 16px; height: 16px; flex: none; }
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 0; width: min(400px, 92vw); }
+dialog::backdrop { background: rgb(0 0 0 / .35); }
+.form { display: grid; gap: 12px; padding: 18px; }
+.form h2 { margin: 0; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }

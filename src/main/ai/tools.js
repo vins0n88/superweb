@@ -8,6 +8,7 @@ import { DOC_TOOL_DEFS } from '../documents.js';
 import { CALENDAR_TOOL_DEFS } from '../calendar.js';
 import { SKILL_TOOL_DEFS } from '../extensions.js';
 import { DATA_TOOL_DEFS } from '../data-sources.js';
+import { JARVIS_TOOL_DEFS } from '../jarvis.js';
 
 const ref = { type: 'integer', description: 'Element ref number from the latest snapshot, e.g. 12 for [12]' };
 
@@ -170,7 +171,7 @@ export const TOOL_DEFS = [
 ];
 
 // SuperAI tools are offered to the model only while the SuperAI connection is on (agent-host).
-const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS, ...SKILL_TOOL_DEFS, ...DATA_TOOL_DEFS].map((d) => [d.name, d]));
+const DEFS_BY_NAME = new Map([...TOOL_DEFS, ...SUPERAI_TOOL_DEFS, ...DOC_TOOL_DEFS, ...CALENDAR_TOOL_DEFS, ...SKILL_TOOL_DEFS, ...DATA_TOOL_DEFS, ...JARVIS_TOOL_DEFS].map((d) => [d.name, d]));
 
 /** Tools that come and go at runtime (user-added MCP servers). */
 const DYNAMIC = new Map();
@@ -269,6 +270,9 @@ export function describeCall(name, input, label = '') {
     case 'get_weather': return `Weather: ${input.city}`;
     case 'get_stock_quote': return `Stock quote: ${input.symbol}`;
     case 'get_crypto_price': return `Crypto price: ${input.coins}`;
+    case 'jarvis_agents': return 'List Jarvis agents';
+    case 'jarvis_chat': return `Send to Jarvis${input.agent ? ` (${input.agent})` : ''}: "${String(input.message ?? '').slice(0, 80)}"`;
+    case 'jarvis_task': return `Jarvis task: "${String(input.title ?? '').slice(0, 80)}"`;
     default: return DYNAMIC.get(name)?.label ? `${DYNAMIC.get(name).label}${Object.keys(input ?? {}).length ? ` ${JSON.stringify(input).slice(0, 80)}` : ''}` : name;
   }
 }

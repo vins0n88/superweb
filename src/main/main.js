@@ -19,6 +19,7 @@ import { createDocumentStore } from './documents.js';
 import { createCalendar } from './calendar.js';
 import { createExtensions } from './extensions.js';
 import { createDataSources } from './data-sources.js';
+import { createJarvis, JARVIS_DEFAULT_REPO } from './jarvis.js';
 import { registerAppScheme, isAppUrl, appNameOf } from './apps.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -448,9 +449,10 @@ app.whenReady().then(() => {
   const calendar = createCalendar({ dir: app.getPath('userData'), notify });
   const extensions = createExtensions({ dir: app.getPath('userData'), secrets: settings });
   const data = createDataSources();
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data });
+  const jarvis = createJarvis({ config: () => ({ url: settings.data.jarvis.url, repo: settings.data.jarvis.repo || JARVIS_DEFAULT_REPO, token: settings.getKey('jarvis:token') }) });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify });
   buildMenu();
   createWindow();
   host.syncMcp();

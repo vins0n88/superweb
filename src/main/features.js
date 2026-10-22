@@ -19,6 +19,9 @@ import { createRestApi, API_DEFAULT_PORT } from './rest-api.js';
 import { createTaskTools } from './mcp-tasks.js';
 import { listTemplates } from './templates.js';
 import { registerWallet } from './wallet-features.js';
+import { createBookmarks, ROOT } from './bookmarks.js';
+import { buildMenu } from './menus.js';
+import { WORLD_MONITOR_VARIANTS, variantUrl, isWorldMonitor } from './worldmonitor.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
@@ -29,6 +32,8 @@ export const APPS = {
   data: { title: '數據與 API', icon: '📊' },
   wallet: { title: '錢包', icon: '👛' },
   player: { title: '影音播放器', icon: '▶' },
+  bookmarks: { title: '收藏夾', icon: '⭐' },
+  jarvis: { title: '賈維斯 Jarvis 2.0', icon: '🤖' },
 };
 
 /**
@@ -41,7 +46,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jobs, version, dataDir, srcDir, notify }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs, version, dataDir, srcDir, notify }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -70,6 +75,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
   const router = createAppRouter({ ipcMain, getTabs });
   /** Opens an app, reusing its tab when one is already open. */
   function openApp(name) {
+    if (name === 'worldmonitor') return openWorldMonitor('www');
     if (!APPS[name]) return '';
     const tabs = getTabs();
     const open = [...tabs.tabs.values()].find((t) => t.app === name);
@@ -77,6 +83,16 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     else tabs.create(`${APP_SCHEME}://${name}/`);
     return `${APP_SCHEME}://${name}/`;
   }
+  /** World Monitor opens as the official site, reusing a tab that already shows it. */
+  function openWorldMonitor(variant) {
+    const url = variantUrl(variant);
+    const tabs = getTabs();
+    const open = [...tabs.tabs.values()].find((t) => !t.app && isWorldMonitor(t.url) && new URL(t.url).hostname.startsWith(`${variant}.`));
+    if (open) tabs.activate(open.id);
+    else tabs.create(url);
+    return url;
+  }
+  const worldMonitorItems = () => Object.entries(WORLD_MONITOR_VARIANTS).map(([v, label]) => ({ label, click: () => openWorldMonitor(v) }));
   ipcMain.handle('apps:list', () => APPS);
   ipcMain.handle('apps:open', (_e, name) => openApp(String(name)));
   ipcMain.handle('apps:menu', () => {
@@ -226,18 +242,16 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
   });
   const MODE_LABEL = { direct: '直連（不使用代理）', system: '跟隨系統代理', proxy: '全部走代理', split: '分流（依網站）' };
   ipcMain.handle('proxy:state', () => { const st = proxy.state(); return { mode: st.mode, active: st.servers.find((x) => x.id === st.active)?.name ?? '' }; });
-  ipcMain.handle('proxy:menu', () => {
-    const win = getWin();
-    if (!win) return;
+  function proxyItems() {
     const st = proxy.state();
     const fail = (err) => send('proxy:error', err.message);
-    Menu.buildFromTemplate([
+    return [
       ...Object.entries(MODE_LABEL).map(([m, label]) => ({ label, type: 'radio', checked: st.mode === m, enabled: m === 'direct' || m === 'system' || st.servers.length > 0, click: () => proxy.setMode(m).catch(fail) })),
       { type: 'separator' },
       ...(st.servers.length ? [{ label: '代理伺服器', submenu: st.servers.map((x) => ({ label: `${x.name}（${x.type.toUpperCase()}）`, type: 'radio', checked: x.id === st.active, click: () => proxy.setActive(x.id).catch(fail) })) }] : []),
       { label: '網路與代理設定…', click: () => openApp('proxy') },
-    ]).popup({ window: win });
-  });
+    ];
+  }
 
   // ---- Data sources & local REST API ----
   const taskTools = createTaskTools({ jobs, activeUrl: () => getTabs().activeUrl(), audit: writeAudit });
@@ -338,23 +352,102 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
   }
 
   /** Right-click menu for web pages. */
-  function contextMenu(tab, params) {
-    const items = [];
-    const sel = (params.selectionText || '').trim();
-    if (sel) {
-      items.push({ label: `翻譯「${sel.length > 18 ? `${sel.slice(0, 17)}…` : sel}」`, click: () => translateSelection(tab, sel) });
-      items.push({ type: 'separator' }, { role: 'copy', label: '複製' });
-    } else if (params.isEditable) {
-      items.push({ role: 'cut', label: '剪下' }, { role: 'copy', label: '複製' }, { role: 'paste', label: '貼上' });
-    } else {
-      const on = translator.isOn(tab.id);
-      items.push({ label: on ? '顯示原文' : `翻譯成${LANGUAGES[settings.data.translate.target]}`, click: () => translator.toggle(tab.id) });
-      items.push({ type: 'separator' }, { label: '上一頁', enabled: tab.view.webContents.navigationHistory.canGoBack(), click: () => tab.view.webContents.navigationHistory.goBack() }, { label: '重新載入', click: () => tab.view.webContents.reload() });
-    }
-    if (params.linkURL) items.push({ type: 'separator' }, { label: '複製連結', click: () => clipboard.writeText(params.linkURL) });
-    const win = getWin();
-    if (win) Menu.buildFromTemplate(items).popup({ window: win });
+  // ---- Bookmarks ----
+  const bookmarks = createBookmarks({ dir: dataDir });
+  bookmarks.onChange(() => { router.emit('bookmarks', 'changed'); send('bookmarks:changed'); });
+  /** Folder → submenu of its bookmarks (opening them), nested. */
+  function bookmarkMenu(folderId = ROOT, depth = 0) {
+    const { folders, items } = bookmarks.tree();
+    const subs = folders.filter((x) => x.parentId === folderId).map((x) => ({ label: `📁 ${x.name}`, submenu: depth < 6 ? bookmarkMenu(x.id, depth + 1) : [] }));
+    const links = items.filter((b) => b.folderId === folderId).slice(0, 40).map((b) => ({ label: b.title.length > 48 ? `${b.title.slice(0, 47)}…` : b.title, click: () => getTabs().create(b.url) }));
+    const out = [...subs, ...links];
+    return out.length ? out : [{ label: '（空的）', enabled: false }];
   }
+  router.register('bookmarks', {
+    tree: () => bookmarks.tree(),
+    folderPaths: () => bookmarks.folderPaths(),
+    add: (b) => bookmarks.add(b),
+    update: (id, patch) => bookmarks.update(id, patch),
+    remove: (id) => bookmarks.remove(id),
+    createFolder: (fo) => bookmarks.createFolder(fo),
+    renameFolder: (id, name) => bookmarks.renameFolder(id, name),
+    moveFolder: (id, parentId) => bookmarks.moveFolder(id, parentId),
+    removeFolder: (id) => bookmarks.removeFolder(id),
+    search: (q) => bookmarks.search(q),
+    open: (url) => { getTabs().create(url); return true; },
+    async importHtml() {
+      const res = await dialog.showOpenDialog(getWin(), { title: '匯入書籤（從 Chrome、Safari、Edge、Firefox 匯出的 HTML）', properties: ['openFile'], filters: [{ name: '書籤 HTML', extensions: ['html', 'htm'] }] });
+      if (res.canceled) return 0;
+      return bookmarks.importHtml(await fs.readFile(res.filePaths[0], 'utf8'), `匯入：${path.basename(res.filePaths[0])}`);
+    },
+    async exportHtml() {
+      const res = await dialog.showSaveDialog(getWin(), { title: '匯出收藏', defaultPath: 'SuperWeb-收藏.html', filters: [{ name: '書籤 HTML', extensions: ['html'] }] });
+      if (res.canceled || !res.filePath) return '';
+      await fs.writeFile(res.filePath, bookmarks.exportHtml());
+      return res.filePath;
+    },
+  });
+  ipcMain.handle('bookmarks:isStarred', (_e, url) => bookmarks.find(String(url)).length > 0);
+  /** ⭐ button: add to a folder, or remove when already saved. */
+  ipcMain.handle('bookmarks:menu', () => {
+    const win = getWin();
+    const tab = getTabs().active();
+    if (!win || !tab) return;
+    const saved = bookmarks.find(tab.url);
+    const folders = bookmarks.folderPaths();
+    Menu.buildFromTemplate([
+      ...(saved.length ? [{ label: `已收藏在：${saved.map((b) => folders.find((x) => x.id === b.folderId)?.path).join('、')}`, enabled: false }, { label: '從收藏移除', click: () => bookmarks.removeUrl(tab.url) }, { type: 'separator' }] : []),
+      ...folders.map((fo) => ({ label: `${saved.some((b) => b.folderId === fo.id) ? '✓ ' : ''}${'　'.repeat(fo.depth)}收藏到「${fo.path.split(' / ').pop()}」`, click: () => bookmarks.add({ url: tab.url, title: tab.title, folderId: fo.id, favicon: tab.favicon }) })),
+      { type: 'separator' },
+      { label: '管理收藏夾…', click: () => openApp('bookmarks') },
+    ]).popup({ window: win });
+  });
 
-  return { contextMenu, translator, openApp, router, stopApi: () => api?.stop() };
+  // ---- JARVIS 2.0 ----
+  const openJarvis = async () => {
+    const url = jarvis.dashboardUrl();
+    const open = [...getTabs().tabs.values()].find((t) => !t.app && t.url.startsWith(url));
+    if (open) getTabs().activate(open.id);
+    else getTabs().create(url);
+  };
+  router.register('jarvis', {
+    async state() {
+      const up = await jarvis.health();
+      let agents = [];
+      let error = '';
+      if (up) agents = await jarvis.agents().catch((err) => { error = err.message; return []; });
+      return { up, agents, error, url: settings.data.jarvis.url, repo: settings.data.jarvis.repo, canStart: jarvis.canStart(), hasToken: Boolean(settings.getKey('jarvis:token')) };
+    },
+    save(cfg) {
+      settings.update({ jarvis: cfg });
+      settings.save();
+      return true;
+    },
+    start: () => jarvis.start(),
+    open: () => openJarvis(),
+  });
+
+  // ---- The right-click menu (also ☰ and right-click on the browser chrome) ----
+  const menuFeatures = {
+    translator, game, proxyItems, apps: APPS, openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
+    target: () => settings.data.translate.target,
+    translateSelection: (tab, text) => translateSelection(tab, text),
+    openTab: (url) => getTabs().create(url),
+    copy: (text) => clipboard.writeText(text),
+    jarvis: {
+      open: () => openJarvis(),
+      status: () => jarvis.statusLabel(),
+      canStart: () => jarvis.canStart(),
+      start: () => { try { jarvis.start(); notify({ title: '正在啟動賈維斯', body: '啟動 NATS、Redis、Gateway 與控制台，約需 10–30 秒' }); } catch (err) { notify({ title: '無法啟動賈維斯', body: err.message }); } },
+    },
+  };
+  const panel = (action) => send('menu-action', action);
+  function popup(tab, params) {
+    const win = getWin();
+    if (win) Menu.buildFromTemplate(buildMenu({ tab, params, panel, f: menuFeatures })).popup({ window: win });
+  }
+  const contextMenu = (tab, params) => popup(tab, params);
+  ipcMain.handle('menu:open', () => popup(getTabs().active(), {}));
+
+  return { contextMenu, translator, openApp, router, menuFeatures, stopApi: () => api?.stop() };
 }

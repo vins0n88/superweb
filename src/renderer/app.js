@@ -173,7 +173,7 @@ toggleAi.addEventListener('click', () => {
 initSettings({ api, panel });
 const schedules = initSchedules({ api });
 initSkills({ api, notify: panel.notify });
-initFeatures({ api });
+initFeatures({ api, showPanel: () => { if (document.body.classList.contains('ai-hidden')) toggleAi.click(); } });
 initDocuments({ api, notify: panel.notify });
 const templates = initTemplates({ api, panel, onBackground: () => showView('jobs'), onSchedule: (prefill) => schedules.open(prefill) });
 const auditLog = initAudit({ api });

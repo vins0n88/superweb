@@ -482,9 +482,6 @@ dialog input[type="time"] { height: 32px; padding: 0 10px; border: 1px solid var
 .export-row { border-top: 1px dashed var(--border); padding-top: 8px; }
 .export-row .rewrite-instruction { flex: 1 1 160px; }
 
-/* v0.5: toolbar toggles that stay lit while on (e.g. live translation) */
-#translate-toggle { font-size: 12px; font-weight: 600; letter-spacing: -0.02em; }
-#translate-toggle.on { background: var(--accent, #7c8cff); color: #fff; }
 
 /* v0.5: attached documents in the AI composer */
 #doc-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
@@ -496,5 +493,6 @@ dialog input[type="time"] { height: 32px; padding: 0 10px; border: 1px solid var
 #ai-panel.drop { outline: 2px dashed var(--accent); outline-offset: -6px; }
 
 /* v0.5: H5 game mode hides the browser chrome so the game gets the whole window */
-#game-menu.on, #open-apps.on, #proxy-menu.on { background: var(--accent-soft); }
+#bookmark-star { font-size: 16px; }
+#bookmark-star.on { color: #f5b301; }
 body.game #titlebar, body.game #toolbar, body.game #ai-panel, body.game #splitter { display: none !important; }

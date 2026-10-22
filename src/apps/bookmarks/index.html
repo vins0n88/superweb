@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>收藏夾</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="bookmarks.css">
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <h1>⭐ 收藏夾</h1>
+    <input id="search" type="search" placeholder="搜尋收藏（標題或網址）" size="28">
+    <button class="btn" id="import">匯入書籤</button>
+    <button class="btn" id="export">匯出</button>
+  </div>
+  <p id="msg" class="small" hidden></p>
+  <div class="layout">
+    <aside class="card tree-pane">
+      <div class="row"><strong class="grow">資料夾</strong><button class="btn small" id="new-folder" title="在選取的資料夾裡新增子資料夾">＋ 資料夾</button></div>
+      <ul class="tree" id="tree"></ul>
+    </aside>
+    <section class="card">
+      <div class="row"><h2 class="grow" id="folder-title">我的收藏</h2><button class="btn small" id="rename-folder">改名</button><button class="btn small" id="delete-folder">刪除資料夾</button></div>
+      <form id="add-form" class="row add">
+        <input name="url" placeholder="貼上網址收藏到這個資料夾" class="grow" spellcheck="false">
+        <input name="title" placeholder="標題（選填）" size="16">
+        <button class="btn primary">加入</button>
+      </form>
+      <ul class="list" id="items"></ul>
+    </section>
+  </div>
+  <p class="muted small">小技巧：在任何網頁按右鍵 → 收藏，或按工具列的 ⭐，就能收藏到指定資料夾。可以從 Chrome、Safari、Edge 匯出書籤 HTML 再匯入。</p>
+</div>
+<dialog id="name-dlg">
+  <form id="name-form" class="form" method="dialog">
+    <h2 id="name-title">新資料夾</h2>
+    <input name="name" required maxlength="80">
+    <div class="row"><span class="grow"></span><button type="button" class="btn" id="name-cancel">取消</button><button class="btn primary">確定</button></div>
+  </form>
+</dialog>
+<dialog id="confirm-dlg">
+  <div class="form">
+    <h2 id="confirm-title"></h2>
+    <p class="small" id="confirm-text"></p>
+    <div class="row"><span class="grow"></span><button class="btn" id="confirm-no">取消</button><button class="btn primary" id="confirm-yes">刪除</button></div>
+  </div>
+</dialog>
+<script src="bookmarks.js" type="module"></script>
+</body>
+</html>

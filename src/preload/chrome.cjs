@@ -107,6 +107,15 @@ contextBridge.exposeInMainWorld('superweb', {
   superai: {
     test: invoke('superai:test'),
   },
+  menu: {
+    open: invoke('menu:open'),
+  },
+  onMenuAction: on('menu-action'),
+  bookmarks: {
+    isStarred: invoke('bookmarks:isStarred'),
+    menu: invoke('bookmarks:menu'),
+    onChanged: on('bookmarks:changed'),
+  },
   proxy: {
     menu: invoke('proxy:menu'),
     state: invoke('proxy:state'),

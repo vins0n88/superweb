@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>賈維斯 Jarvis 2.0</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<style>
+  .status { font-size: 18px; font-weight: 700; }
+  .form { display: grid; gap: 10px; max-width: 640px; }
+  .form label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head"><h1>🤖 賈維斯 Jarvis 2.0</h1><button class="btn primary" id="open">開啟賈維斯控制台</button><button class="btn" id="start">啟動賈維斯</button><button class="btn" id="refresh">重新檢查</button></div>
+  <section class="card">
+    <div class="status" id="status">檢查中…</div>
+    <p class="muted small" id="detail"></p>
+    <ul class="list" id="agents"></ul>
+  </section>
+  <section class="card">
+    <h2>和 SuperWeb 的整合</h2>
+    <p class="small">SuperWeb 的 AI 可以把對話或任務交給賈維斯的代理群，並等它回覆，例如「請賈維斯每天早上把這個網站的新聞整理寄到 Telegram」。每次交給賈維斯前都會先問你。右鍵 → 賈維斯 Jarvis 可以快速開啟控制台。</p>
+  </section>
+  <section class="card">
+    <h2>設定</h2>
+    <form id="form" class="form">
+      <label>賈維斯 Gateway 網址<input name="url" placeholder="http://127.0.0.1:18900"></label>
+      <label>賈維斯資料夾（用來「啟動賈維斯」，裡面要有 scripts/jarvis.sh）<input name="repo" placeholder="~/Downloads/Jarvis-2.0-main（留空使用預設）" spellcheck="false"></label>
+      <label>連線權杖（選填；在本機時 SuperWeb 會自動取得）<input name="token" type="password" autocomplete="off" placeholder="JARVIS_AUTH_TOKEN"></label>
+      <div class="row"><button class="btn primary">儲存</button><span class="small" id="saved"></span></div>
+    </form>
+    <p class="muted small">賈維斯需要 Node 22、NATS 與 Redis（<code>brew install nats-server redis</code>），第一次使用請照它資料夾裡的 SETUP.md 設定 <code>.env</code>。也可以安裝賈維斯官方的 macOS App，它已內建這些元件。</p>
+  </section>
+</div>
+<script type="module" src="jarvis.js"></script>
+</body>
+</html>

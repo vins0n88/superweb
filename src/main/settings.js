@@ -7,6 +7,7 @@ import { PROVIDERS } from './ai/providers/index.js';
 import { DEFAULT_SEARCH } from './url.js';
 import { MCP_DEFAULT_PORT, newToken } from './mcp-server.js';
 import { DEFAULT_SENSITIVE_DOMAINS } from './security/policy.js';
+import { WORLD_MONITOR_HOME, OLD_DEFAULT_HOME } from './worldmonitor.js';
 
 const MAX_SITE_ENTRIES = 500;
 const TRANSLATE_TARGETS = ['zh-Hant', 'zh-Hans', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'th', 'vi'];
@@ -27,7 +28,8 @@ export const DEFAULTS = {
   translate: { target: 'zh-Hant', mode: 'bilingual' }, // live page translation
   api: { enabled: false, port: 39218, token: '' }, // local REST API (off by default)
   walletDapp: false, // websites may ask to connect to the wallet (window.ethereum)
-  homepage: 'https://superai.ky',
+  jarvis: { url: 'http://127.0.0.1:18900', repo: '' }, // JARVIS 2.0 gateway; repo '' = ~/Downloads/Jarvis-2.0-main
+  homepage: WORLD_MONITOR_HOME, // World Monitor (v0.6); users can change it in Settings
   searchTemplate: DEFAULT_SEARCH,
 };
 
@@ -46,6 +48,7 @@ export class Settings {
         superai: { ...DEFAULTS.superai, ...saved.superai },
         translate: { ...DEFAULTS.translate, ...saved.translate },
         api: { ...DEFAULTS.api, ...saved.api },
+        jarvis: { ...DEFAULTS.jarvis, ...saved.jarvis },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
           notion: { ...DEFAULTS.integrations.notion, ...saved.integrations?.notion },
@@ -53,6 +56,11 @@ export class Settings {
       };
     } catch {
       // first run or unreadable file: keep defaults
+    }
+    // v0.6: World Monitor replaces the old default start page once; a page the user chose stays.
+    if (!this.data.homeMigrated) {
+      if (this.data.homepage.replace(/\/$/, '') === OLD_DEFAULT_HOME) this.data.homepage = WORLD_MONITOR_HOME;
+      this.data.homeMigrated = true;
     }
   }
 
@@ -124,6 +132,17 @@ export class Settings {
       this.data.mcp = mcp;
     }
     if (patch.walletDapp !== undefined) this.data.walletDapp = Boolean(patch.walletDapp);
+    if (patch.jarvis) {
+      const j = { ...DEFAULTS.jarvis, ...this.data.jarvis };
+      if (typeof patch.jarvis.url === 'string') {
+        const url = patch.jarvis.url.trim().replace(/\/$/, '');
+        if (!/^https?:\/\/(127\.0\.0\.1|localhost|[\w.-]+\.local)(:\d+)?$/.test(url)) throw new Error('賈維斯網址要是本機或區網位址，例如 http://127.0.0.1:18900');
+        j.url = url;
+      }
+      if (typeof patch.jarvis.repo === 'string') j.repo = patch.jarvis.repo.trim();
+      if (typeof patch.jarvis.token === 'string') this.setKey('jarvis:token', patch.jarvis.token.trim());
+      this.data.jarvis = j;
+    }
     if (patch.api) {
       const api = { ...DEFAULTS.api, ...this.data.api };
       if (patch.api.enabled !== undefined) api.enabled = Boolean(patch.api.enabled);

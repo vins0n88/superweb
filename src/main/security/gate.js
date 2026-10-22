@@ -60,6 +60,7 @@ export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searc
     if (name === 'navigate' || name === 'open_tab') return navigationVerdict(input.url, task);
     // Handing work (and whatever data the prompt carries) to SuperAI is always confirmed on its own.
     if (name === 'superai_run_task') return { action: 'confirm', reason: 'Sends this task and its data to SuperAI' };
+    if (name === 'jarvis_chat' || name === 'jarvis_task') return { action: 'confirm', reason: 'Sends this message and its data to JARVIS' };
     if (name === 'superai_run_skill') return { action: 'confirm', reason: `Sends this data to SuperAI to run the skill "${input.skill}"` };
     if (name === 'read_tab') {
       const target = tabUrl(input.id);

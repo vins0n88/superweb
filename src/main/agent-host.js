@@ -14,6 +14,7 @@ import { DOC_TOOL_DEFS } from './documents.js';
 import { CALENDAR_TOOL_DEFS } from './calendar.js';
 import { SKILL_TOOL_DEFS } from './extensions.js';
 import { DATA_TOOL_DEFS } from './data-sources.js';
+import { JARVIS_TOOL_DEFS } from './jarvis.js';
 import { setDynamicDefs } from './ai/tools.js';
 import { JobManager } from './jobs.js';
 
@@ -36,7 +37,7 @@ export const MCP_TOOLS = [...TOOL_DEFS.filter((d) => !d.internal).map(withHints)
  * @param {(note: {title: string, body: string, jobId?: string}) => void} deps.notify
  * @param {string} deps.version
  */
-export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents, calendar, extensions, data }) {
+export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents, calendar, extensions, data, jarvis }) {
   const pendingApprovals = new Map();
   const pendingPlans = new Map();
   const writeAudit = (entry) => {
@@ -80,7 +81,7 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
     setDynamicDefs(mcpDefs); // validation, approvals, and summaries for user-added MCP tools
     return [...baseTools(), ...(extensions.hasSkills() ? SKILL_TOOL_DEFS.map(stripLocal) : []), ...mcpDefs.map(stripLocal)];
   };
-  const baseTools = () => [...MODEL_TOOLS, ...DOC_TOOL_DEFS.map(stripLocal), ...CALENDAR_TOOL_DEFS.map(stripLocal), ...DATA_TOOL_DEFS.map(stripLocal), ...(settings.data.superai?.enabled ? SUPERAI_TOOL_DEFS.map(stripLocal) : [])];
+  const baseTools = () => [...MODEL_TOOLS, ...DOC_TOOL_DEFS.map(stripLocal), ...CALENDAR_TOOL_DEFS.map(stripLocal), ...DATA_TOOL_DEFS.map(stripLocal), ...JARVIS_TOOL_DEFS.map(stripLocal), ...(settings.data.superai?.enabled ? SUPERAI_TOOL_DEFS.map(stripLocal) : [])];
 
   /** Settings → SuperAI → Test: lists SuperAI's experts with the saved token. */
   async function testSuperai() {
@@ -146,6 +147,7 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
     const execute = async (name, input) => {
       if (name === 'read_document') return documents.read(input);
       if (data.isTool(name)) return data.callTool(name, input);
+      if (jarvis.isTool(name)) return jarvis.callTool(name, input);
       if (name === 'load_skill') return extensions.loadSkill(input);
       if (extensions.isTool(name)) return extensions.call(name, input);
       if (name === 'list_calendar') return calendar.listForAgent(input);

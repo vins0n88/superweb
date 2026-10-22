@@ -1,56 +1,60 @@
-// v0.5 features in the browser chrome: live translation toggle (more to come).
+// Browser chrome: a clean toolbar (⭐ bookmark, ☰ menu); every other feature lives in the
+// right-click menu, which the main process builds (src/main/menus.js).
 
-export function initFeatures({ api }) {
-  const btn = document.getElementById('translate-toggle');
+/** Menu actions that run in the AI panel reuse its (hidden) buttons. */
+const PANEL_ACTIONS = {
+  summarize: '[data-prompt=summarize]', keypoints: '[data-prompt=keypoints]', explain: '[data-prompt=explain]',
+  rewrite: '[data-prompt=rewrite]', compare: '[data-prompt=compare]', 'new-chat': '#new-chat', templates: '#open-templates',
+  record: '#record-skill', schedules: '#open-schedules', audit: '#open-audit', jobs: '#view-jobs',
+};
+
+export function initFeatures({ api, showPanel }) {
   let activeId = null;
-  let state = {};
+  let activeUrl = '';
 
-  function render() {
-    const on = activeId != null && state[activeId];
-    btn.setAttribute('aria-pressed', String(Boolean(on)));
-    btn.classList.toggle('on', Boolean(on));
-    btn.title = on
-      ? `顯示原文${on.error ? `（上次錯誤：${on.error}）` : on.done ? `（已翻譯 ${on.done} 段）` : '（翻譯中…）'}`
-      : '翻譯此頁（再按一次顯示原文）';
-  }
+  // ⭐ shows whether this page is saved; click to pick a folder or remove it.
+  const star = document.getElementById('bookmark-star');
+  const renderStar = async () => {
+    const on = /^(https?|superweb):/i.test(activeUrl) && (await api.bookmarks.isStarred(activeUrl));
+    star.textContent = on ? '★' : '☆';
+    star.classList.toggle('on', on);
+    star.title = on ? '已收藏（按一下管理）' : '收藏這一頁';
+  };
+  star.addEventListener('click', () => api.bookmarks.menu());
+  api.bookmarks.onChanged(renderStar);
 
-  btn.addEventListener('click', async () => {
-    await api.translate.toggle(activeId);
+  document.getElementById('main-menu').addEventListener('click', () => api.menu.open());
+  // Right-click anywhere on the browser chrome (not in text fields) opens the same menu.
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('input, textarea, [contenteditable="true"]')) return;
+    e.preventDefault();
+    api.menu.open();
   });
-  document.getElementById('open-apps').addEventListener('click', () => api.apps.menu());
+
+  api.onMenuAction((action) => {
+    showPanel();
+    if (action === 'jarvis') {
+      const prompt = document.getElementById('prompt');
+      prompt.value = '請把這件工作交給賈維斯：';
+      prompt.focus();
+      return;
+    }
+    if (action !== 'jobs' && !['templates', 'schedules', 'audit'].includes(action)) document.getElementById('view-chat')?.click();
+    document.querySelector(PANEL_ACTIONS[action])?.click();
+  });
 
   // H5 game mode: hide the browser chrome while the active tab plays full-window.
-  const gameBtn = document.getElementById('game-menu');
   let game = {};
-  const renderGame = () => {
-    const g = game[activeId];
-    document.body.classList.toggle('game', Boolean(g?.fullscreen));
-    gameBtn.classList.toggle('on', Boolean(g && (g.fullscreen || g.device !== 'off' || g.muted)));
-  };
-  gameBtn.addEventListener('click', () => api.game.menu());
+  const renderGame = () => document.body.classList.toggle('game', Boolean(game[activeId]?.fullscreen));
+  api.game.onChanged((g) => { game = g; renderGame(); });
 
-  // Network: lit while traffic goes through a proxy.
-  const proxyBtn = document.getElementById('proxy-menu');
-  const MODE = { direct: '直連', system: '系統代理', proxy: '全部走代理', split: '分流' };
-  const renderProxy = (p) => {
-    proxyBtn.classList.toggle('on', p.mode === 'proxy' || p.mode === 'split');
-    proxyBtn.title = `網路：${MODE[p.mode] ?? p.mode}${p.active && (p.mode === 'proxy' || p.mode === 'split') ? `（${p.active}）` : ''}`;
-  };
-  proxyBtn.addEventListener('click', () => api.proxy.menu());
-  api.proxy.onChanged(renderProxy);
-  api.proxy.state().then(renderProxy);
-  api.game.onChanged((s) => { game = s; renderGame(); });
-  api.tabs.onChanged((s) => { activeId = s.activeId; renderGame(); });
-  api.tabs.onChanged((s) => {
-    activeId = s.activeId;
-    render();
+  api.proxy.onError?.((msg) => console.warn('[superweb] proxy:', msg));
+  api.tabs.onChanged((st) => {
+    activeId = st.activeId;
+    activeUrl = st.tabs.find((t) => t.id === st.activeId)?.url ?? '';
+    renderGame();
+    renderStar();
   });
-  api.translate.onChanged((s) => {
-    state = s;
-    render();
-  });
-  api.translate.state().then((s) => { state = s; render(); });
-  api.tabs.state().then((s) => { activeId = s.activeId; render(); });
 }
 
 /** Document AI analysis: attach files to the AI panel and ask about them. */
