@@ -22,6 +22,7 @@ function fakeApi({ utxos = [], fees = { halfHourFee: 5 } } = {}) {
       if (url.endsWith(`/address/${ME}`)) return { chain_stats: { funded_txo_sum: 150_000, spent_txo_sum: 50_000 }, mempool_stats: { funded_txo_sum: 2_000, spent_txo_sum: 0 } };
       if (url.endsWith('/txs')) return [
         { txid: 'in1', fee: 200, status: { confirmed: true, block_time: 1700000000 }, vin: [{ prevout: { scriptpubkey_address: 'bc1qfriend', value: 60_000 } }], vout: [{ scriptpubkey_address: ME, value: 40_000 }, { scriptpubkey_address: 'bc1qfriend', value: 19_800 }] },
+        { txid: 'merge', fee: 150, status: { confirmed: true }, vin: [{ prevout: { scriptpubkey_address: ME, value: 1_000 } }, { prevout: { scriptpubkey_address: ME, value: 2_000 } }], vout: [{ scriptpubkey_address: ME, value: 2_850 }] },
         { txid: 'out1', fee: 300, status: { confirmed: false }, vin: [{ prevout: { scriptpubkey_address: ME, value: 40_000 } }], vout: [{ scriptpubkey_address: TO, value: 10_000 }, { scriptpubkey_address: ME, value: 29_700 }] },
       ];
       throw new Error(`unexpected ${url}`);
@@ -84,7 +85,7 @@ test('Bitcoin send: exact output, change back to us, sane fee, valid BIP143 sign
 test('Bitcoin history: net amounts excluding fee; refuses absurd fee data', async () => {
   const b = createBitcoin({ api: 'https://mempool.test/api', ...fakeApi() });
   const h = await b.history(ME);
-  assert.deepEqual(h.map((x) => [x.hash, x.dir, x.raw, x.status]), [['in1', 'in', 40_000n, 'ok'], ['out1', 'out', 10_000n, 'pending']]);
+  assert.deepEqual(h.map((x) => [x.hash, x.dir, x.raw, x.status]), [['in1', 'in', 40_000n, 'ok'], ['merge', 'self', 150n, 'ok'], ['out1', 'out', 10_000n, 'pending']]);
   const crazy = createBitcoin({ api: 'https://mempool.test/api', ...fakeApi({ fees: { halfHourFee: 5000 } }) });
   await assert.rejects(crazy.feeRate(), /異常偏高/);
 });

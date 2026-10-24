@@ -76,6 +76,17 @@
       <h3>已連接的網站</h3>
       <ul class="list" id="connections"></ul>
     </div>
+    <div class="card" id="wc-card">
+      <div class="row"><h2 class="grow">📱 手機錢包（WalletConnect）</h2><span class="small" id="wc-status"></span></div>
+      <p class="muted small">用手機上的 MetaMask、Trust、Rainbow 等錢包掃碼連線；開啟「網站改用手機錢包」後，網站要求的簽名與交易會先由 SuperWeb 確認，再送到手機核准。金鑰一直留在手機上。</p>
+      <form id="wc-form" class="row">
+        <input id="wc-pid" placeholder="WalletConnect 專案 ID（32 碼）" spellcheck="false" autocomplete="off" class="grow">
+        <button class="btn">儲存</button>
+        <button type="button" class="btn" id="wc-get">免費申請專案 ID</button>
+      </form>
+      <div class="row"><button type="button" class="btn primary" id="wc-connect">連接手機錢包</button><button type="button" class="btn" id="wc-disconnect" hidden>中斷手機連線</button><label class="row small"><input type="checkbox" id="wc-sites"> 網站改用手機錢包簽名</label></div>
+      <div id="wc-qr" class="qr" hidden></div>
+    </div>
   </section>
 </div>
 
@@ -102,6 +113,29 @@
     <label class="check"><input type="checkbox" id="seed-ok"> 我已經抄寫並保存好</label>
     <div class="actions"><span class="grow"></span><button class="btn primary" id="seed-done" disabled>完成</button></div>
   </div>
+</dialog>
+
+<dialog id="qr-dlg">
+  <div class="form">
+    <h2 id="qr-title">收款</h2>
+    <div id="qr-img" class="qr"></div>
+    <div class="addr" id="qr-addr"></div>
+    <p class="small warn" id="qr-warn"></p>
+    <div class="actions"><span class="grow"></span><button class="btn" id="qr-copy">複製地址</button><button class="btn primary" id="qr-close">關閉</button></div>
+  </div>
+</dialog>
+
+<dialog id="net-dlg">
+  <form id="net-form" class="form" method="dialog">
+    <h2>加入 EVM 網路</h2>
+    <label>名稱<input name="name" maxlength="40" placeholder="例如：Linea" required></label>
+    <label>RPC 網址<input name="rpc" placeholder="https://…" spellcheck="false" required></label>
+    <div class="two"><label>Chain ID（選填，會和 RPC 核對）<input name="chainId" inputmode="numeric"></label><label>原生幣代號<input name="symbol" maxlength="10" placeholder="ETH" required></label></div>
+    <label>區塊瀏覽器（選填）<input name="explorer" placeholder="https://…" spellcheck="false"></label>
+    <p class="small warn">只加你信任的網路：RPC 回報的餘額與交易結果都由它決定。</p>
+    <p class="error small" id="net-err" hidden></p>
+    <div class="actions"><span class="grow"></span><button type="button" class="btn" id="net-cancel">取消</button><button class="btn primary">加入</button></div>
+  </form>
 </dialog>
 
 <dialog id="import-dlg">

@@ -78,6 +78,22 @@ export function transferInstructions({ from, to, amount, token }) {
   return [ix.createTokenAccountIdempotent(from, dst, to, token.address), ix.transferChecked(src, token.address, dst, from, amount, token.decimals)];
 }
 
+const ERRORS = {
+  AccountNotFound: '寄出的帳戶在鏈上不存在（沒有 SOL）',
+  InsufficientFundsForFee: 'SOL 不夠支付手續費',
+  InsufficientFundsForRent: '轉完後帳戶會低於 Solana 的最低存款',
+  InvalidAccountForFee: '這個帳戶不能支付手續費（它已被某個程式接管，不是一般錢包帳戶）',
+  BlockhashNotFound: '區塊資料過期，請重新預覽',
+};
+/** Simulation error → readable Chinese (token "insufficient funds" is custom error 0x1). */
+export function explain(err, logs = []) {
+  const key = typeof err === 'string' ? err : Object.keys(err)[0];
+  if (ERRORS[key]) return ERRORS[key];
+  const ins = err?.InstructionError?.[1];
+  if (ins?.Custom === 1 || (logs ?? []).some((l) => /insufficient (funds|lamports)/i.test(l))) return '餘額不足';
+  return `${JSON.stringify(err)}${logs?.length ? `（${logs.slice(-2).join(' ')}）` : ''}`;
+}
+
 /**
  * @param {object} deps
  * @param {string} deps.rpc
@@ -108,13 +124,13 @@ export function createSolana({ rpc, fetchJson }) {
       const r = await call('getAccountInfo', [tokenAccount(owner, mint), { encoding: 'base64', commitment: 'confirmed' }]);
       return Boolean(r?.value);
     },
-    /** Simulates without signatures; returns an error message or ''. */
+    /** Simulates without signatures; returns a readable error message or ''. */
     async simulate({ from, to, amount, token }) {
       const { value } = await call('getLatestBlockhash', [{ commitment: 'confirmed' }]);
       const msg = compileMessage(from, transferInstructions({ from, to, amount, token }), value.blockhash);
       const tx = concat(new Uint8Array(shortvec(1)), new Uint8Array(64), msg);
       const r = await call('simulateTransaction', [base64.encode(tx), { encoding: 'base64', sigVerify: false, replaceRecentBlockhash: true, commitment: 'confirmed' }]);
-      return r.value.err ? `${JSON.stringify(r.value.err)}${r.value.logs?.length ? `（${r.value.logs.slice(-2).join(' ')}）` : ''}` : '';
+      return r.value.err ? explain(r.value.err, r.value.logs) : '';
     },
     /** Compiles with a fresh blockhash, signs, and broadcasts; returns the signature. */
     async send({ priv, from, to, amount, token }) {

@@ -71,9 +71,11 @@ export function createBitcoin({ api, testnet = false, fetchJson, postText }) {
         const got = t.vout.filter((o) => o.scriptpubkey_address === address).reduce((n, o) => n + BigInt(o.value), 0n);
         const out = spent > 0n;
         const other = t.vout.find((o) => o.scriptpubkey_address !== address);
-        const raw = out ? spent - got - BigInt(t.fee ?? 0) : got;
-        return { hash: t.txid, time: (t.status?.block_time ?? Date.now() / 1000) * 1000, dir: out ? (raw > 0n ? 'out' : 'self') : 'in', raw: raw < 0n ? 0n : raw, decimals: 8, symbol: 'BTC',
-          counterparty: out ? other?.scriptpubkey_address ?? '' : t.vin[0]?.prevout?.scriptpubkey_address ?? '', status: t.status?.confirmed ? 'ok' : 'pending' };
+        const fee = BigInt(t.fee ?? 0);
+        const raw = out ? spent - got - fee : got;
+        const self = out && raw <= 0n; // only our own coins moved (consolidation): what it cost is the fee
+        return { hash: t.txid, time: (t.status?.block_time ?? Date.now() / 1000) * 1000, dir: self ? 'self' : out ? 'out' : 'in', raw: self ? fee : raw, decimals: 8, symbol: 'BTC',
+          counterparty: self ? '' : out ? other?.scriptpubkey_address ?? '' : t.vin[0]?.prevout?.scriptpubkey_address ?? '', status: t.status?.confirmed ? 'ok' : 'pending' };
       });
     },
   };

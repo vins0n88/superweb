@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { base58, base64 } from '@scure/base';
 import { ed25519 } from '@noble/curves/ed25519.js';
-import { compileMessage, transferInstructions, signTransaction, tokenAccount, isWalletAddress, pubkey, createSolana, SYSTEM_PROGRAM, TOKEN_PROGRAM, ATA_PROGRAM } from '../src/main/chains/solana.js';
+import { compileMessage, transferInstructions, signTransaction, tokenAccount, isWalletAddress, pubkey, createSolana, explain, SYSTEM_PROGRAM, TOKEN_PROGRAM, ATA_PROGRAM } from '../src/main/chains/solana.js';
 import { chainKey } from '../src/main/chains/keys.js';
 
 const ABANDON = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -87,4 +87,11 @@ test('Solana client: signs a fresh message, maps statuses, and reports transfers
   const h = await sol.history(k.address, [USDC]);
   assert.deepEqual(h.map((x) => [x.dir, x.raw, x.symbol]), [['out', 100_000_000n, 'SOL']], 'the 5000-lamport fee is not part of the amount');
   assert.equal(signTransaction(msg, k.priv).length, 1 + 64 + msg.length);
+});
+
+test('Solana errors are explained in plain words', () => {
+  assert.match(explain('InvalidAccountForFee'), /不能支付手續費/);
+  assert.match(explain('AccountNotFound'), /不存在/);
+  assert.equal(explain({ InstructionError: [1, { Custom: 1 }] }), '餘額不足');
+  assert.match(explain({ InstructionError: [0, 'Weird'] }, ['a', 'b']), /Weird.*（a b）/);
 });

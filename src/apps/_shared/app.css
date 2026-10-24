@@ -35,3 +35,5 @@ input, select, textarea { font: inherit; color: var(--ink); background: var(--su
 .empty { padding: 24px; text-align: center; color: var(--muted); }
 .error { color: var(--bad); }
 .ok { color: var(--ok); }
+/* `hidden` must win over layout classes like .grid/.row/.btn (they set display). */
+[hidden] { display: none !important; }

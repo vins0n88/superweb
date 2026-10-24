@@ -245,7 +245,16 @@ export function createWallet({ dir, secrets, verifyUser, ethers, provider: makeP
       const tx = t
         ? { to: t.address, data: new ethers.Interface(ERC20).encodeFunctionData('transfer', [recipient, value]), value: 0n }
         : { to: recipient, value };
-      const [gas, fee, balance] = await Promise.all([p.estimateGas({ ...tx, from: w.address }), p.getFeeData(), p.getBalance(w.address)]);
+      const balance = await p.getBalance(w.address);
+      if (!t && balance < value) throw new Error(`${n.symbol} 餘額不足（目前 ${ethers.formatEther(balance)}）`);
+      let gas;
+      try {
+        gas = await p.estimateGas({ ...tx, from: w.address });
+      } catch (err) {
+        if (err.code === 'INSUFFICIENT_FUNDS') throw new Error(`${n.symbol} 餘額不足以支付${t ? '手續費' : '金額與手續費'}`);
+        throw new Error(`無法估算手續費：${err.shortMessage ?? err.message}`.slice(0, 200));
+      }
+      const fee = await p.getFeeData();
       const price = fee.maxFeePerGas ?? fee.gasPrice;
       const feeWei = gas * price;
       if (balance < feeWei + (t ? 0n : value)) throw new Error(`${n.symbol} 餘額不足以支付${t ? '手續費' : '金額與手續費'}`);

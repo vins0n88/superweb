@@ -36,10 +36,18 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
   }
 
   const wallet = createWallet({ dir: dataDir, secrets: settings, verifyUser, ethers });
+  /** JSON over the browser's network stack (proxy applies); public chain APIs rate-limit, so 429 is retried. */
   const fetchJson = async (url, init = {}) => {
-    const res = await net.fetch(url, { ...init, signal: AbortSignal.timeout(20000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    for (let attempt = 0; ; attempt++) {
+      const res = await net.fetch(url, { ...init, signal: AbortSignal.timeout(20000) });
+      if (res.status === 429 && attempt < 3) {
+        await new Promise((r) => setTimeout(r, 800 * 2 ** attempt));
+        continue;
+      }
+      if (res.status === 429) throw new Error(`${new URL(url).hostname} 暫時限制查詢次數，請過一分鐘再試`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
   };
   const postText = async (url, body) => {
     const res = await net.fetch(url, { method: 'POST', body, headers: { 'content-type': 'text/plain' }, signal: AbortSignal.timeout(30000) });
