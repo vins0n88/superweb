@@ -2,10 +2,11 @@
 // optional dApp connection for web pages. Authentication uses Touch ID when the Mac
 // has it, otherwise a native confirmation dialog.
 
-import { dialog, systemPreferences } from 'electron';
+import { dialog, systemPreferences, net } from 'electron';
 import { createWallet } from './wallet.js';
 import { createWalletProvider, ProviderError } from './wallet-provider.js';
 import { createAssets } from './assets.js';
+import { createHistory, qrSvg } from './wallet-history.js';
 
 export async function registerWallet({ ipcMain, router, getTabs, getWin, settings, dataDir, data, writeAudit, ask }) {
   const { ethers } = await import('ethers');
@@ -33,6 +34,12 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
   }
 
   const wallet = createWallet({ dir: dataDir, secrets: settings, verifyUser, ethers });
+  const fetchJson = async (url, init = {}) => {
+    const res = await net.fetch(url, { ...init, signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+  const history = createHistory({ dir: dataDir, fetchJson, status: (chain, network, hash) => wallet.txStatus(network, hash) });
   const chainBalance = async (chain, address) => {
     if (chain === 'btc') {
       const res = await fetch(`https://mempool.space/api/address/${encodeURIComponent(address)}`, { signal: AbortSignal.timeout(15000) });
@@ -103,8 +110,14 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
     async send(previewId) {
       const r = await wallet.send(previewId);
       writeAudit({ source: 'wallet', type: 'wallet_send', summary: r.hash });
+      history.record({ network: r.network, from: r.from, to: r.to, amount: r.amount, symbol: r.symbol, hash: r.hash });
       return r;
     },
+    history(address, network) {
+      const n = wallet.net(network);
+      return history.list({ network, address, symbol: n.symbol, tokens: n.tokens, explorer: n.explorer });
+    },
+    qr: (text) => qrSvg(text),
     async setDapp(on) {
       if (on && !(await verifyUser('允許網站連接 SuperWeb 錢包'))) throw new Error('驗證沒有通過');
       settings.update({ walletDapp: Boolean(on) });

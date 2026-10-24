@@ -249,7 +249,7 @@ export function createWallet({ dir, secrets, verifyUser, ethers, provider: makeP
       const feeWei = gas * price;
       if (balance < feeWei + (t ? 0n : value)) throw new Error(`${n.symbol} 餘額不足以支付${t ? '手續費' : '金額與手續費'}`);
       const previewId = crypto.randomUUID();
-      previews.set(previewId, { at: Date.now(), id, network, tx: { ...tx, gasLimit: gas * 12n / 10n } });
+      previews.set(previewId, { at: Date.now(), id, network, tx: { ...tx, gasLimit: gas * 12n / 10n }, shown: { from: w.address, to: recipient, amount: String(amount).trim(), symbol: t ? t.symbol : n.symbol } });
       return { previewId, from: w.address, to: recipient, amount: String(amount).trim(), symbol: t ? t.symbol : n.symbol, network: n.name, testnet: Boolean(n.testnet), custom: !Object.hasOwn(NETWORKS, network) || Boolean(t?.custom), fee: ethers.formatEther(feeWei), feeSymbol: n.symbol };
     },
     /** Step 2: exactly the previewed transfer, after the user authenticates. */
@@ -260,7 +260,12 @@ export function createWallet({ dir, secrets, verifyUser, ethers, provider: makeP
       if (!(await verifyUser('確認送出這筆交易'))) throw new Error('驗證沒有通過，交易沒有送出');
       const sent = await signer(pv.id, pv.network).sendTransaction(pv.tx);
       const ex = net(pv.network).explorer;
-      return { hash: sent.hash, url: ex ? `${ex}/tx/${sent.hash}` : '' };
+      return { hash: sent.hash, url: ex ? `${ex}/tx/${sent.hash}` : '', network: pv.network, ...pv.shown };
+    },
+    /** On-chain status of a transaction: pending until it has a receipt. */
+    async txStatus(network, hash) {
+      const r = await provider(network).getTransactionReceipt(hash);
+      return !r ? 'pending' : r.status === 1 ? 'ok' : 'failed';
     },
 
     // ---- for the dApp provider (wallet-provider.js) ----
