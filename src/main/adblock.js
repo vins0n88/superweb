@@ -23,6 +23,35 @@ export function siteOf(url) {
   }
 }
 
+export const isYouTube = (site) => /(^|\.)(youtube\.com|youtube-nocookie\.com)$/.test(site);
+
+/**
+ * Runs in YouTube's page: while the player shows an ad, mute it and jump to its end
+ * (clicking "Skip" when offered), then restore the viewer's volume and speed.
+ */
+export const YOUTUBE_AD_SKIPPER = `(() => {
+  if (window.__superwebAdSkip) return;
+  window.__superwebAdSkip = true;
+  let saved = null;
+  setInterval(() => {
+    const player = document.querySelector('#movie_player');
+    const video = player?.querySelector('video');
+    const ad = Boolean(player && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting')));
+    for (const b of document.querySelectorAll('.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-overlay-close-button')) b.click();
+    if (!video) return;
+    if (ad) {
+      saved ??= { muted: video.muted, rate: video.playbackRate };
+      video.muted = true;
+      if (Number.isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration - 0.2) video.currentTime = video.duration - 0.1;
+      else video.playbackRate = 16;
+    } else if (saved) {
+      video.muted = saved.muted;
+      video.playbackRate = saved.rate === 16 ? 1 : saved.rate;
+      saved = null;
+    }
+  }, 250);
+})();`;
+
 /** True when host is an allowlisted site or a subdomain of one. */
 export const isAllowed = (host, allow) => allow.some((s) => host === s || host.endsWith(`.${s}`));
 
@@ -133,7 +162,12 @@ export function createAdblock({ dir, config, fetchText, build, pageUrl = () => '
     onInjectCosmeticFilters(event, url, msg) {
       const site = siteOf(url);
       if (!engine || !config().enabled || !site || isAllowed(site, config().allow)) return undefined;
-      return engine.onInjectCosmeticFilters(event, url, msg);
+      if (!isYouTube(site)) return engine.onInjectCosmeticFilters(event, url, msg);
+      // YouTube: uBlock's scriptlets expect to run before the page's own scripts; injected
+      // late they stop the player from loading. Keep the CSS, skip video ads instead.
+      const cssOnly = { frameId: event.frameId, processId: event.processId, sender: { insertCSS: (css, o) => event.sender.insertCSS(css, o), executeJavaScript: () => Promise.resolve() } };
+      if (msg === undefined) event.sender.executeJavaScript(YOUTUBE_AD_SKIPPER, true).catch(() => {});
+      return engine.onInjectCosmeticFilters(cssOnly, url, msg);
     },
     onIsMutationObserverEnabled: () => Boolean(engine && config().enabled),
     forget: (webContentsId) => pages.delete(webContentsId),

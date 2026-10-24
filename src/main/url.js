@@ -6,6 +6,21 @@ const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'file:', 'about:']);
 export function normalizeInput(raw, searchTemplate = DEFAULT_SEARCH) {
   const text = String(raw ?? '').trim();
   if (!text) return 'about:blank';
+  // Typed with a Chinese/Japanese input method: youtube。com, google，com, ａｂｃ．com／ｘ？ｑ＝１
+  const ascii = toAsciiPunctuation(text);
+  if (ascii !== text) {
+    const url = resolve(ascii, searchTemplate);
+    if (url !== searchUrl(ascii, searchTemplate)) return url;
+  }
+  return resolve(text, searchTemplate);
+}
+
+/** Full-width forms (ａ-ｚ ０-９ ．－＝／：？＆＃) and CJK stops/commas (。｡，、) → ASCII. */
+export function toAsciiPunctuation(text) {
+  return text.replace(/[。｡，、]/g, '.').normalize('NFKC');
+}
+
+function resolve(text, searchTemplate) {
 
   const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(text);
   if (hasScheme) {

@@ -17,6 +17,14 @@ test('normalizeInput: URLs, hosts, and searches', () => {
   assert.equal(normalizeInput('what is moli browser'), 'https://duckduckgo.com/?q=what%20is%20moli%20browser');
   assert.equal(normalizeInput('javascript:alert(1)'), 'https://duckduckgo.com/?q=javascript%3Aalert(1)');
   assert.equal(normalizeInput(''), 'about:blank');
+  // Punctuation typed with a Chinese input method
+  assert.equal(normalizeInput('youtube。com'), 'https://youtube.com/');
+  assert.equal(normalizeInput('www，google，com'), 'https://www.google.com/');
+  assert.equal(normalizeInput('ｗｗｗ．ｅｘａｍｐｌｅ．ｃｏｍ／ａ－ｂ？ｑ＝１＆ｘ＝２'), 'https://www.example.com/a-b?q=1&x=2');
+  assert.equal(normalizeInput('https：／／news。example、com／x'), 'https://news.example.com/x');
+  assert.equal(normalizeInput('localhost：3000'), 'http://localhost:3000/');
+  assert.equal(normalizeInput('今天天氣如何。'), 'https://duckduckgo.com/?q=%E4%BB%8A%E5%A4%A9%E5%A4%A9%E6%B0%A3%E5%A6%82%E4%BD%95%E3%80%82', 'Chinese sentences stay searches');
+  assert.equal(normalizeInput('example.com/?a=1,2'), 'https://example.com/?a=1,2', 'ASCII commas in URLs are kept');
   assert.equal(normalizeInput('x', 'https://s.test/?q=%s'), 'https://s.test/?q=x');
 });
 

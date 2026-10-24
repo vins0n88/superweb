@@ -4,13 +4,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
-import { createAdblock, adblockMenu, siteOf, isAllowed, ADBLOCK_LISTS, ADBLOCK_RESOURCES } from '../src/main/adblock.js';
+import { createAdblock, adblockMenu, siteOf, isAllowed, isYouTube, YOUTUBE_AD_SKIPPER, ADBLOCK_LISTS, ADBLOCK_RESOURCES } from '../src/main/adblock.js';
 import { Settings } from '../src/main/settings.js';
+import { JSDOM } from 'jsdom';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'sw-adblock-'));
 const pad = '\n! padding so the list counts as downloaded '.repeat(4);
 // Each list URL serves a small real filter list; the last (EasyList China) carries a Chinese ad host.
-const LISTS = { default: `||ads.example.com^\n||track.example.net^$third-party\n##.ad-banner${pad}` };
+const LISTS = { default: `||ads.example.com^\n||track.example.net^$third-party\n##.ad-banner\nyoutube.com,news.test##.promo-slot\nyoutube.com,news.test##+js(set, adsOn, false)${pad}` };
 const china = ADBLOCK_LISTS.at(-1);
 
 /** Runs the real worker thread, exactly as the app does. */
@@ -132,4 +133,58 @@ test('adblock menu: toggle, per-site off/on, status, list update', () => {
   assert.ok(!labels(adblockMenu(st, { url: 'superweb://wallet/', blocked: 0 }, act)).some((l) => /停用|恢復/.test(l)), 'no per-site item on tool pages');
   assert.match(labels(adblockMenu({ ...st, status: 'error', error: 'offline' }, { url: '', blocked: 0 }, act))[1], /清單下載失敗：offline/);
   assert.equal(adblockMenu({ ...st, updating: true }, { url: '', blocked: 0 }, act).at(-1).enabled, false);
+});
+
+test('adblock on YouTube: CSS hiding stays, scriptlets are replaced by the ad skipper', async () => {
+  const resources = JSON.stringify({ redirects: [], scriptlets: [{ name: 'set-constant.js', aliases: ['set.js', 'set'], body: 'function setConstant() { window.__setConstant = true; }', dependencies: [], executionWorld: 'MAIN', requiresTrust: false }] });
+  const dir = tmp();
+  const ab = createAdblock({
+    dir, build, config: () => ({ enabled: true, allow: [] }),
+    fetchText: async (url) => (url === ADBLOCK_RESOURCES ? resources : LISTS.default),
+  });
+  await ab.init();
+  const run = async (url) => {
+    const css = [];
+    const js = [];
+    const event = { frameId: 1, processId: 1, sender: { insertCSS: (c) => css.push(c), executeJavaScript: async (code) => js.push(code) } };
+    await ab.onInjectCosmeticFilters(event, url, undefined);
+    return { css: css.join('\n'), js };
+  };
+  assert.equal(isYouTube('www.youtube.com'), true);
+  assert.equal(isYouTube('youtube.com.evil.test'), false);
+  const yt = await run('https://www.youtube.com/watch?v=x');
+  assert.match(yt.css, /\.promo-slot/, 'element hiding still applies');
+  assert.deepEqual(yt.js, [YOUTUBE_AD_SKIPPER], 'only the skipper runs; list scriptlets are skipped');
+  const news = await run('https://news.test/');
+  assert.match(news.css, /\.promo-slot/);
+  assert.ok(news.js.length >= 1 && !news.js.includes(YOUTUBE_AD_SKIPPER), 'other sites keep their scriptlets');
+});
+
+test('YouTube ad skipper: mutes and jumps to the end of an ad, then restores sound and speed', async () => {
+  const dom = new JSDOM('<div id="movie_player" class="ad-showing"><video></video></div>', { runScripts: 'outside-only' });
+  const { window } = dom;
+  const video = window.document.querySelector('video');
+  Object.defineProperty(video, 'duration', { value: 30, configurable: true });
+  let t = 0;
+  Object.defineProperty(video, 'currentTime', { get: () => t, set: (v) => { t = v; }, configurable: true });
+  video.muted = false;
+  video.playbackRate = 1.25;
+  const skip = window.document.createElement('button');
+  skip.className = 'ytp-skip-ad-button';
+  let skipped = 0;
+  skip.addEventListener('click', () => skipped++);
+  window.document.body.append(skip);
+
+  window.eval(YOUTUBE_AD_SKIPPER);
+  window.eval(YOUTUBE_AD_SKIPPER); // injected again on another navigation: still one timer
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(video.muted, true);
+  assert.ok(t > 29.8, 'jumped to the end of the ad');
+  assert.ok(skipped >= 1, 'pressed Skip');
+
+  window.document.querySelector('#movie_player').classList.remove('ad-showing');
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(video.muted, false, 'sound restored');
+  assert.equal(video.playbackRate, 1.25, "the viewer's own speed is kept");
+  window.close();
 });
