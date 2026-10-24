@@ -1,5 +1,34 @@
 # SuperWeb 更新紀錄
 
+## v0.7.0（2026-10-24）
+
+**測試**：204 個單元測試全過；e2e 實機測試 14/15 通過（本機 Ollama gpt-oss:20b；未過的「搜尋彙整」走真實搜尋引擎，前幾版也不穩定）；錢包新功能在開發版與打包版都實機驗證（見下）。安裝檔：`SuperWeb-0.7.0-arm64.dmg`（SHA-256 `0aba291796142b7baf288687e77120fed751aa9f5aa74fb0d9d583e4ba80b41f`）。
+
+### 新增：Web3 錢包大升級（右鍵 → 工具 → 錢包 → Web3 錢包）
+- **比特幣、TRON、Solana**：同一組助記詞同時管理以太坊系、比特幣（原生 SegWit bc1q）、TRON（TRX、USDT）與 Solana（SOL、USDC、USDT），地址和 Electrum／TronLink／Phantom 相同。另有 Bitcoin Signet、TRON Nile、Solana Devnet 三個測試網。用私鑰匯入的錢包可用在以太坊系與 TRON。
+  - 交易在 SuperWeb 裡組好並簽章：TRON 交易與節點自己組的逐位元組相同；Solana 交易在主網模擬通過；故意用錯誤私鑰簽的交易會被兩條鏈的節點拒絕，用來確認簽章正確。
+  - 預覽會先算好手續費、TRON 對方帳戶啟用費、Solana 代幣帳戶開戶租金與最低存款；Touch ID 確認後才簽章送出。
+  - 防呆：不能轉到代幣合約本身、不能把 Solana 的代幣帳戶或程式帳戶當收款人、測試網地址不能用在主網。
+- **自訂代幣與網路**：貼合約地址就能加入 ERC-20 代幣（代號與小數位數從合約讀取，不允許和現有代幣同名，避免假幣）；可加入任何 EVM 網路（RPC 回報的 chainId 必須和你填的一致）；網站連接也能切到自訂網路。內建新增 Optimism、Avalanche。
+- **交易紀錄**：顯示轉入、轉出、狀態與區塊瀏覽器連結。以太坊、Optimism、Base、Arbitrum、Polygon、Sepolia 使用 Blockscout；TRON、Solana、比特幣讀各自的公開節點；其餘網路列出從 SuperWeb 送出的交易。只顯示錢包清單裡的代幣、略過 0 元轉入，並提醒不要從紀錄複製地址（防垃圾空投與地址投毒）。
+- **收款 QR Code**：每條鏈的收款地址，附「只接受這條鏈」的提醒。
+- **WalletConnect 手機錢包**：在「網站連接」用手機錢包（MetaMask、Trust、Rainbow 等）掃碼連線；開啟「網站改用手機錢包」後，網站的簽名與交易會先由 SuperWeb 確認、再到手機核准，金鑰一直留在手機。需要到 cloud.reown.com 免費申請專案 ID。
+- Solana 可改用自己的 RPC（公用節點有流量限制）。
+
+### 修正
+- 工具頁的分頁切換：錢包頁等頁面切換分頁時，其他分頁的內容沒有隱藏而疊在一起（v0.5 起的問題）。
+- 以太坊系轉帳餘額不足時，改為白話訊息，不再顯示一大段原始錯誤。
+- 公用節點暫時限流（HTTP 429）時自動重試。
+
+### 安全
+- 新套件固定在發佈超過兩週的版本：@noble/curves、@noble/hashes、@scure/base、@scure/bip32、@scure/bip39、@scure/btc-signer（2.4.x，已審計的密碼學函式庫）、qrcode-generator 2.0.4、@walletconnect/sign-client 2.26.0；其相依中較新的 unstorage、process-warning 以 overrides 固定在舊版。
+- WalletConnect 設定與網站連接設定一樣，只能從錢包頁修改。AI 對錢包仍然沒有任何權限。
+
+### 已知限制
+- WalletConnect 尚未用真實手機實測（需要你的專案 ID）；已用模擬 SDK 測試，並確認真實 SDK 能連到 WalletConnect 伺服器。
+- 比特幣只使用一個地址（找零回同一個地址），隱私性不如多地址錢包。
+- 非 EVM 鏈的實際轉帳只在測試中以節點驗證簽章與模擬，沒有用真實資金送出。
+
 ## v0.6.2（2026-10-24）
 
 **測試**：179 個單元測試全過；e2e 實機測試 14/15 通過（本機 Ollama gpt-oss:20b；未過的「搜尋彙整」是 Ollama 回傳伺服器錯誤 500，這項在前幾版也不穩定）；網址列與 YouTube 都在 App 裡實機驗證。安裝檔：`SuperWeb-0.6.2-arm64.dmg`（SHA-256 `d11f0626e8aa1e3ef1e25ece4775f18b83f10d762f574109abee12230f5cc3ca`）。
