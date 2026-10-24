@@ -96,9 +96,9 @@ export function createHistory({ dir, fetchJson, status }) {
     },
     /**
      * Recent activity of one address on one network, newest first.
-     * @param {{chain?: string, network: string, address: string, symbol: string, tokens?: object[], explorer?: string, remote?: () => Promise<object[]>}} q
+     * @param {{chain?: string, network: string, address: string, symbol: string, tokens?: object[], explorer?: string, txUrl?: (hash: string) => string, remote?: () => Promise<object[]>}} q
      */
-    async list({ chain = 'evm', network, address, symbol, tokens = [], explorer = '', remote }) {
+    async list({ chain = 'evm', network, address, symbol, tokens = [], explorer = '', txUrl = (h) => (explorer ? `${explorer}/tx/${h}` : ''), remote }) {
       const mine = data.sent.filter((s) => s.chain === chain && s.network === network && same(s.from, address));
       let changed = false;
       await Promise.all(mine.filter((s) => s.status === 'pending').slice(0, 10).map(async (s) => {
@@ -124,7 +124,7 @@ export function createHistory({ dir, fetchJson, status }) {
         byHash.set(k, { ...byHash.get(k), ...f, time: byHash.get(k)?.time ?? f.time });
       }
       const items = [...byHash.values()].sort((a, b) => b.time - a.time).slice(0, SHOW)
-        .map((it) => ({ ...it, url: explorer ? `${explorer}/tx/${it.hash}` : '' }));
+        .map((it) => ({ ...it, url: txUrl(it.hash) }));
       return { items, complete: chain !== 'evm' || Boolean(BLOCKSCOUT[network]), error };
     },
   };

@@ -1,0 +1,49 @@
+{
+ "transfer": {
+  "raw_data": {
+   "ref_block_bytes": "931e",
+   "ref_block_hash": "becf842ab303c5c3",
+   "expiration": 1792864758000,
+   "contract": [
+    {
+     "parameter": {
+      "value": {
+       "owner_address": "TV6MuMXfmLbBqPZvBHdwFsDnQeVfnmiuSi",
+       "to_address": "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH",
+       "amount": 1234567
+      },
+      "type_url": "type.googleapis.com/protocol.TransferContract"
+     },
+     "type": "TransferContract"
+    }
+   ],
+   "timestamp": 1792864699494
+  },
+  "raw_data_hex": "0a02931e2208becf842ab303c5c340f0d1c4f896345a67080112630a2d747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472616e73666572436f6e747261637412320a1541d1c4bb7b2f39aba5707711719b2236b5b605af2e121541c8599111f29c1e1e061265b4af93ea1f274ad78a1887ad4b70e688c1f89634",
+  "txID": "542baa229a2da418ed5d259b0657b8ae5670fc235e469c74bf53794033cae664"
+ },
+ "trc20": {
+  "raw_data": {
+   "ref_block_bytes": "931e",
+   "ref_block_hash": "becf842ab303c5c3",
+   "expiration": 1792864758000,
+   "contract": [
+    {
+     "parameter": {
+      "value": {
+       "owner_address": "TV6MuMXfmLbBqPZvBHdwFsDnQeVfnmiuSi",
+       "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+       "data": "a9059cbb000000000000000000000000a614f803b6fd780986a42c78ec9c7f77e6ded13c00000000000000000000000000000000000000000000000000000000004c4b40"
+      },
+      "type_url": "type.googleapis.com/protocol.TriggerSmartContract"
+     },
+     "type": "TriggerSmartContract"
+    }
+   ],
+   "timestamp": 1792864699752,
+   "fee_limit": 30000000
+  },
+  "raw_data_hex": "0a02931e2208becf842ab303c5c340f0d1c4f896345aae01081f12a9010a31747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e54726967676572536d617274436f6e747261637412740a1541d1c4bb7b2f39aba5707711719b2236b5b605af2e121541a614f803b6fd780986a42c78ec9c7f77e6ded13c2244a9059cbb000000000000000000000000a614f803b6fd780986a42c78ec9c7f77e6ded13c00000000000000000000000000000000000000000000000000000000004c4b4070e88ac1f8963490018087a70e",
+  "txID": "59d316a5314f123caad9afc64b285c71eb606a0c8b78394a96815285a8bb77f0"
+ }
+}

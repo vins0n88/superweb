@@ -7,6 +7,7 @@ import { createWallet } from './wallet.js';
 import { createWalletProvider, ProviderError } from './wallet-provider.js';
 import { createAssets } from './assets.js';
 import { createHistory, qrSvg } from './wallet-history.js';
+import { createChains } from './wallet-chains.js';
 
 export async function registerWallet({ ipcMain, router, getTabs, getWin, settings, dataDir, data, writeAudit, ask }) {
   const { ethers } = await import('ethers');
@@ -39,7 +40,15 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   };
-  const history = createHistory({ dir: dataDir, fetchJson, status: (chain, network, hash) => wallet.txStatus(network, hash) });
+  const postText = async (url, body) => {
+    const res = await net.fetch(url, { method: 'POST', body, headers: { 'content-type': 'text/plain' }, signal: AbortSignal.timeout(30000) });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`廣播失敗：${text.slice(0, 200)}`);
+    return text;
+  };
+  let chains = null;
+  const history = createHistory({ dir: dataDir, fetchJson, status: (chain, network, hash) => (chain === 'evm' ? wallet.txStatus(network, hash) : chains.status(network, hash)) });
+  chains = createChains({ dir: dataDir, secretOf: (id) => wallet._secret(id), verifyUser, fetchJson, postText, history });
   const chainBalance = async (chain, address) => {
     if (chain === 'btc') {
       const res = await fetch(`https://mempool.space/api/address/${encodeURIComponent(address)}`, { signal: AbortSignal.timeout(15000) });
@@ -89,9 +98,9 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
       return assets.analyze();
     },
     // web3
-    networks: () => wallet.networks(),
+    networks: () => ({ ...wallet.networks(), ...chains.networks() }),
     state: () => ({ ...wallet.state(), dapp: dappOn(), touchId: process.platform === 'darwin' && systemPreferences.canPromptTouchID() }),
-    setNetwork: (n) => wallet.setNetwork(n),
+    setNetwork: (n) => (chains.has(n) ? n : wallet.setNetwork(n)),
     create: (name) => {
       const r = wallet.create(name);
       writeAudit({ source: 'wallet', type: 'wallet_create', summary: r.address });
@@ -104,18 +113,42 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
       return w;
     },
     reveal: (id) => wallet.reveal(id),
-    remove: (id) => wallet.remove(id),
+    async remove(id) {
+      await wallet.remove(id);
+      chains.forget(id);
+      return true;
+    },
+    /** The wallet's address on any network (Bitcoin/TRON/Solana are derived from its secret). */
+    address(id, network) {
+      if (chains.has(network)) return chains.addressInfo(id, network);
+      const w = wallet.state().wallets.find((x) => x.id === id);
+      const ex = wallet.net(network).explorer;
+      return { address: w?.address ?? '', url: ex && w ? `${ex}/address/${w.address}` : '' };
+    },
+    walletBalances(id, network) {
+      if (chains.has(network)) return chains.balances(id, network);
+      const w = wallet.state().wallets.find((x) => x.id === id);
+      return wallet.balances(w.address, network);
+    },
+    walletHistory(id, network) {
+      if (chains.has(network)) return chains.history(id, network);
+      const w = wallet.state().wallets.find((x) => x.id === id);
+      const n = wallet.net(network);
+      return history.list({ network, address: w.address, symbol: n.symbol, tokens: n.tokens, explorer: n.explorer });
+    },
+    setSolanaRpc: ({ network, url }) => chains.setRpc(network, url),
     balances: (address, network) => wallet.balances(address, network),
-    prepareSend: (input) => wallet.prepareSend(input),
+    prepareSend: (input) => (chains.has(input?.network) ? chains.prepareSend(input) : wallet.prepareSend(input)),
     async send(previewId) {
+      if (String(previewId).startsWith('chain:')) {
+        const r = await chains.send(previewId); // records its own history
+        writeAudit({ source: 'wallet', type: 'wallet_send', summary: `${r.network} ${r.hash}` });
+        return r;
+      }
       const r = await wallet.send(previewId);
       writeAudit({ source: 'wallet', type: 'wallet_send', summary: r.hash });
       history.record({ network: r.network, from: r.from, to: r.to, amount: r.amount, symbol: r.symbol, hash: r.hash });
       return r;
-    },
-    history(address, network) {
-      const n = wallet.net(network);
-      return history.list({ network, address, symbol: n.symbol, tokens: n.tokens, explorer: n.explorer });
     },
     qr: (text) => qrSvg(text),
     async setDapp(on) {

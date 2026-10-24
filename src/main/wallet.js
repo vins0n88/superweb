@@ -237,6 +237,7 @@ export function createWallet({ dir, secrets, verifyUser, ethers, provider: makeP
       if (recipient.toLowerCase() === w.address.toLowerCase()) throw new Error('收款地址和寄出地址相同');
       const t = token ? n.tokens.find((x) => x.symbol === token) : null;
       if (token && !t) throw new Error(`${n.name} 上沒有 ${token}`);
+      if (t && recipient.toLowerCase() === t.address.toLowerCase()) throw new Error(`收款地址是 ${t.symbol} 的合約本身，轉過去的幣會永久卡住；請改用對方的錢包地址`);
       let value;
       try { value = ethers.parseUnits(String(amount).trim(), t ? t.decimals : 18); } catch { throw new Error('金額格式不對'); }
       if (value <= 0n) throw new Error('金額要大於 0');
@@ -270,6 +271,13 @@ export function createWallet({ dir, secrets, verifyUser, ethers, provider: makeP
 
     // ---- for the dApp provider (wallet-provider.js) ----
     _signer: signer,
+    /** For wallet-chains.js only: the secret, to derive Bitcoin/TRON/Solana keys. */
+    _secret: (id) => {
+      const w = wallet(id);
+      const secret = secrets.getKey(`wallet:${w.id}`);
+      if (!secret) throw new Error('錢包金鑰不見了（鑰匙圈無法讀取）');
+      return { kind: w.kind, secret };
+    },
     _provider: provider,
     _save: save,
     _data: () => data,
