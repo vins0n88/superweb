@@ -23,6 +23,8 @@
     "@scure/bip32": "2.4.0",
     "@scure/bip39": "2.4.0",
     "@scure/btc-signer": "2.4.1",
+    "@walletconnect/sign-client": "2.26.0",
+    "@walletconnect/utils": "2.26.0",
     "ethers": "6.17.0",
     "exceljs": "4.4.0",
     "imapflow": "2.2.6",
@@ -99,6 +101,8 @@
     "tldts-experimental": {
       ".": "7.4.12",
       "tldts-core": "7.4.12"
-    }
+    },
+    "unstorage": "1.17.5",
+    "process-warning": "5.1.0"
   }
 }

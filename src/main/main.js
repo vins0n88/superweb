@@ -121,7 +121,7 @@ function registerIpc() {
   ipcMain.handle('settings:get', () => settings.publicView());
   ipcMain.handle('settings:update', async (_e, patch) => {
     // The wallet's dApp switch is only changed from the wallet page, after Touch ID.
-    const { walletDapp: _ignored, ...rest } = patch ?? {};
+    const { walletDapp: _ignored, walletconnect: _wc, ...rest } = patch ?? {}; // wallet settings change only from the wallet page
     const view = settings.update(rest);
     host.agent.reset(); // provider/model may have changed
     if (patch?.mcp) await host.syncMcp();

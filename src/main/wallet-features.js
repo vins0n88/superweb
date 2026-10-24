@@ -8,6 +8,7 @@ import { createWalletProvider, ProviderError } from './wallet-provider.js';
 import { createAssets } from './assets.js';
 import { createHistory, qrSvg } from './wallet-history.js';
 import { createChains } from './wallet-chains.js';
+import { createWalletConnect } from './walletconnect.js';
 
 export async function registerWallet({ ipcMain, router, getTabs, getWin, settings, dataDir, data, writeAudit, ask }) {
   const { ethers } = await import('ethers');
@@ -62,9 +63,17 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
   const assets = createAssets({ dir: dataDir, data, chainBalance, ask });
 
   const dappOn = () => Boolean(settings.data.walletDapp);
+  const wc = createWalletConnect({
+    dir: dataDir,
+    projectId: () => settings.data.walletconnect?.projectId ?? '',
+    chainIds: () => Object.values(wallet.networks()).filter((n) => !n.custom).map((n) => n.chainId),
+    onChange: (st) => router.emit('wallet', 'wc', { ...st, uriQr: st.uri ? qrSvg(st.uri) : '' }),
+  });
+  wc.init().catch(() => {});
+  const phone = { enabled: () => Boolean(settings.data.walletconnect?.forSites), account: () => wc.account(), supportsChain: (id) => wc.supportsChain(id), chains: () => wc.chains(), request: (...a) => wc.request(...a) };
   const originOf = (url) => { try { return new URL(url).origin; } catch { return ''; } };
   const provider = createWalletProvider({
-    wallet, ethers, enabled: dappOn, confirm, verifyUser, audit: writeAudit,
+    wallet, ethers, enabled: dappOn, confirm, verifyUser, audit: writeAudit, phone,
     emit: (origin, event, payload) => {
       for (const t of getTabs()?.tabs.values() ?? []) if (!t.app && originOf(t.view.webContents.getURL()) === origin) t.view.webContents.send('web3:event', { event, payload });
     },
@@ -158,6 +167,19 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
       return dappOn();
     },
     disconnect: (origin) => provider.disconnect(origin),
+    // WalletConnect (phone wallet for websites)
+    wcState: () => ({ ...wc.state(), projectId: settings.data.walletconnect?.projectId ?? '', forSites: Boolean(settings.data.walletconnect?.forSites), uriQr: wc.state().uri ? qrSvg(wc.state().uri) : '' }),
+    async wcSave({ projectId, forSites }) {
+      settings.update({ walletconnect: { ...(projectId !== undefined ? { projectId } : {}), ...(forSites !== undefined ? { forSites } : {}) } });
+      settings.save();
+      return true;
+    },
+    async wcConnect() {
+      const { uri } = await wc.connect();
+      writeAudit({ source: 'wallet', type: 'wc_pair', summary: 'WalletConnect pairing started' });
+      return { uri, qr: qrSvg(uri) };
+    },
+    wcDisconnect: () => wc.disconnect(),
     explorer: (network) => { try { return wallet.net(network).explorer ?? ''; } catch { return ''; } },
     addNetwork: (n) => wallet.addNetwork(n),
     removeNetwork: (k) => wallet.removeNetwork(k),

@@ -28,6 +28,7 @@ export const DEFAULTS = {
   translate: { target: 'zh-Hant', mode: 'bilingual' }, // live page translation
   api: { enabled: false, port: 39218, token: '' }, // local REST API (off by default)
   walletDapp: false, // websites may ask to connect to the wallet (window.ethereum)
+  walletconnect: { projectId: '', forSites: false }, // phone wallet via WalletConnect; forSites: websites sign on the phone
   jarvis: { url: 'http://127.0.0.1:18900', repo: '' }, // JARVIS 2.0 gateway; repo '' = ~/Downloads/Jarvis-2.0-main
   adblock: { enabled: true, allow: [] }, // ad & tracker blocking; allow = sites where it is off
   homepage: WORLD_MONITOR_HOME, // World Monitor (v0.6); users can change it in Settings
@@ -51,6 +52,7 @@ export class Settings {
         api: { ...DEFAULTS.api, ...saved.api },
         jarvis: { ...DEFAULTS.jarvis, ...saved.jarvis },
         adblock: { ...DEFAULTS.adblock, ...saved.adblock },
+        walletconnect: { ...DEFAULTS.walletconnect, ...saved.walletconnect },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
           notion: { ...DEFAULTS.integrations.notion, ...saved.integrations?.notion },
@@ -144,6 +146,16 @@ export class Settings {
       this.data.adblock = a;
     }
     if (patch.walletDapp !== undefined) this.data.walletDapp = Boolean(patch.walletDapp);
+    if (patch.walletconnect) {
+      const wc = { ...DEFAULTS.walletconnect, ...this.data.walletconnect };
+      if (patch.walletconnect.projectId !== undefined) {
+        const id = String(patch.walletconnect.projectId).trim();
+        if (id && !/^[0-9a-f]{32}$/i.test(id)) throw new Error('WalletConnect 專案 ID 是 32 碼英數字（在 cloud.reown.com 建立專案後取得）');
+        wc.projectId = id;
+      }
+      if (patch.walletconnect.forSites !== undefined) wc.forSites = Boolean(patch.walletconnect.forSites);
+      this.data.walletconnect = wc;
+    }
     if (patch.jarvis) {
       const j = { ...DEFAULTS.jarvis, ...this.data.jarvis };
       if (typeof patch.jarvis.url === 'string') {
