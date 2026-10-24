@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import http from 'node:http';
 import { ethers } from 'ethers';
 import { createWallet, NETWORKS, networkByChainId } from '../src/main/wallet.js';
+import { fakeChain } from './fake-chain.js';
 import { createWalletProvider, readableMessage } from '../src/main/wallet-provider.js';
 import { createAssets, refuseSecrets } from '../src/main/assets.js';
 import { siteTier } from '../src/main/security/policy.js';
@@ -14,44 +14,13 @@ import { TOOL_DEFS } from '../src/main/ai/tools.js';
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'sw-wallet-'));
 const secretsStore = () => { const k = {}; return { k, getKey: (n) => k[n] ?? '', setKey: (n, v) => { if (v) k[n] = v; else delete k[n]; }, save() {} }; };
 
-/** A tiny Ethereum JSON-RPC node: enough for ethers to estimate, sign, and broadcast. */
-async function fakeChain(chainId) {
-  const sent = [];
-  const balance = 10n ** 18n; // 1 ETH
-  const server = http.createServer((req, res) => {
-    let body = '';
-    req.on('data', (c) => { body += c; });
-    req.on('end', () => {
-      const msgs = [].concat(JSON.parse(body));
-      const out = msgs.map(({ id, method, params }) => {
-        if (method === 'eth_sendRawTransaction') {
-          sent.push(ethers.Transaction.from(params[0]));
-          return { jsonrpc: '2.0', id, result: sent.at(-1).hash };
-        }
-        const result = {
-          eth_chainId: `0x${chainId.toString(16)}`, net_version: String(chainId), eth_blockNumber: '0x10',
-          eth_getBalance: `0x${balance.toString(16)}`, eth_getTransactionCount: '0x0', eth_estimateGas: '0x5208',
-          eth_gasPrice: '0x3b9aca00', eth_maxPriorityFeePerGas: '0x3b9aca00',
-          eth_getBlockByNumber: { number: '0x10', baseFeePerGas: '0x3b9aca00', hash: `0x${'1'.repeat(64)}`, parentHash: `0x${'0'.repeat(64)}`, timestamp: '0x1', gasLimit: '0x1c9c380', gasUsed: '0x0', miner: `0x${'0'.repeat(40)}`, extraData: '0x', difficulty: '0x0', nonce: '0x0000000000000000', transactions: [] },
-          eth_call: `0x${(25n * 10n ** 6n).toString(16).padStart(64, '0')}`,
-        }[method];
-        return result === undefined ? { jsonrpc: '2.0', id, error: { code: -32601, message: `no ${method}` } } : { jsonrpc: '2.0', id, result };
-      });
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify(Array.isArray(JSON.parse(body)) ? out : out[0]));
-    });
-  });
-  const port = await new Promise((r) => server.listen(0, '127.0.0.1', () => r(server.address().port)));
-  return { url: `http://127.0.0.1:${port}`, sent, close: () => { server.closeAllConnections(); server.close(); } };
-}
-
 function walletWith(chainUrl, { verify = true } = {}) {
   const secrets = secretsStore();
   const verifyCalls = [];
   const w = createWallet({
     dir: tmp(), secrets, ethers,
     verifyUser: async (reason) => { verifyCalls.push(reason); return verify; },
-    provider: (network) => new ethers.JsonRpcProvider(chainUrl, NETWORKS[network].chainId, { staticNetwork: true }),
+    provider: (network, net) => new ethers.JsonRpcProvider(chainUrl, net.chainId, { staticNetwork: true }),
   });
   return { w, secrets, verifyCalls };
 }

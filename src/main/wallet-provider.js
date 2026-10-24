@@ -3,7 +3,6 @@
 // SuperWeb dialog the page cannot draw over; signatures that can move funds
 // (typed data, transactions) also need Touch ID / system authentication.
 
-import { NETWORKS, networkByChainId } from './wallet.js';
 
 const READ_METHODS = new Set([
   'eth_blockNumber', 'eth_call', 'eth_estimateGas', 'eth_gasPrice', 'eth_getBalance', 'eth_getBlockByNumber', 'eth_getBlockByHash', 'eth_getCode',
@@ -18,7 +17,6 @@ export class ProviderError extends Error {
   }
 }
 const rejected = () => new ProviderError(4001, 'User rejected the request.');
-const hexChain = (network) => `0x${NETWORKS[network].chainId.toString(16)}`;
 
 /** Shows a message as readable text when it is UTF-8 hex (as personal_sign usually sends). */
 export function readableMessage(msg) {
@@ -45,6 +43,7 @@ export function createWalletProvider({ wallet, ethers, enabled, confirm, verifyU
   const conn = (origin) => data().connections[origin];
   const walletOf = (origin) => data().wallets.find((w) => w.id === conn(origin)?.walletId);
   const networkOf = (origin) => conn(origin)?.network ?? data().network;
+  const hexChain = (network) => `0x${wallet.net(network).chainId.toString(16)}`;
 
   function requireConnected(origin, address) {
     const w = walletOf(origin);
@@ -59,13 +58,13 @@ export function createWalletProvider({ wallet, ethers, enabled, confirm, verifyU
       if (!/^https:\/\//.test(origin) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) throw new ProviderError(4100, 'Only https sites can use the wallet.');
       switch (method) {
         case 'eth_chainId': return hexChain(networkOf(origin));
-        case 'net_version': return String(NETWORKS[networkOf(origin)].chainId);
+        case 'net_version': return String(wallet.net(networkOf(origin)).chainId);
         case 'eth_accounts': return walletOf(origin) ? [walletOf(origin).address] : [];
         case 'eth_requestAccounts': {
           if (walletOf(origin)) return [walletOf(origin).address];
           const w = data().wallets[0];
           if (!w) throw new ProviderError(4100, 'No wallet in SuperWeb yet.');
-          const ok = await confirm('connect', { title: `允許 ${origin} 連接你的錢包？`, detail: `網站將可以看到你的地址：\n${w.address}\n（${w.name}，${NETWORKS[data().network].name}）\n\n網站之後要求簽名或交易時，SuperWeb 都會再問你。` });
+          const ok = await confirm('connect', { title: `允許 ${origin} 連接你的錢包？`, detail: `網站將可以看到你的地址：\n${w.address}\n（${w.name}，${wallet.net(data().network).name}）\n\n網站之後要求簽名或交易時，SuperWeb 都會再問你。` });
           if (!ok) throw rejected();
           data().connections[origin] = { walletId: w.id, network: data().network, at: Date.now() };
           wallet._save();
@@ -74,10 +73,10 @@ export function createWalletProvider({ wallet, ethers, enabled, confirm, verifyU
           return [w.address];
         }
         case 'wallet_switchEthereumChain': {
-          const target = networkByChainId(parseInt(params?.[0]?.chainId, 16));
+          const target = wallet.networkByChainId(parseInt(params?.[0]?.chainId, 16));
           if (!target) throw new ProviderError(4902, 'SuperWeb Wallet does not support this network.');
           if (!conn(origin)) { data().network = target; wallet._save(); return null; }
-          const ok = await confirm('switch', { title: `${origin} 想切換到 ${NETWORKS[target].name}`, detail: '允許切換網路嗎？' });
+          const ok = await confirm('switch', { title: `${origin} 想切換到 ${wallet.net(target).name}`, detail: '允許切換網路嗎？' });
           if (!ok) throw rejected();
           conn(origin).network = target;
           wallet._save();
@@ -107,7 +106,7 @@ export function createWalletProvider({ wallet, ethers, enabled, confirm, verifyU
           const w = requireConnected(origin, tx?.from);
           const network = networkOf(origin);
           const value = tx.value ? BigInt(tx.value) : 0n;
-          const ok = await confirm('send', { title: `${origin} 要求送出交易`, detail: `網路：${NETWORKS[network].name}\n從：${w.address}\n到：${tx.to ?? '（建立合約）'}\n金額：${ethers.formatEther(value)} ${NETWORKS[network].symbol}\n${tx.data && tx.data !== '0x' ? `合約呼叫資料：${String(tx.data).slice(0, 74)}…（${(String(tx.data).length - 2) / 2} bytes）\n` : ''}\n確認後還需要 Touch ID／系統密碼。` });
+          const ok = await confirm('send', { title: `${origin} 要求送出交易`, detail: `網路：${wallet.net(network).name}\n從：${w.address}\n到：${tx.to ?? '（建立合約）'}\n金額：${ethers.formatEther(value)} ${wallet.net(network).symbol}\n${tx.data && tx.data !== '0x' ? `合約呼叫資料：${String(tx.data).slice(0, 74)}…（${(String(tx.data).length - 2) / 2} bytes）\n` : ''}\n確認後還需要 Touch ID／系統密碼。` });
           if (!ok || !(await verifyUser(`送出 ${origin} 的交易`))) throw rejected();
           const sent = await wallet._signer(w.id, network).sendTransaction({ to: tx.to, value, data: tx.data, ...(tx.gas ? { gasLimit: BigInt(tx.gas) } : {}) });
           audit({ source: 'wallet', type: 'dapp_tx', summary: `${origin}: ${sent.hash}`, domain: new URL(origin).hostname });

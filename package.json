@@ -17,6 +17,12 @@
     "@anthropic-ai/sdk": "^0.135.0",
     "@ghostery/adblocker": "2.18.2",
     "@ghostery/adblocker-electron": "2.18.2",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.4.0",
+    "@scure/bip32": "2.4.0",
+    "@scure/bip39": "2.4.0",
+    "@scure/btc-signer": "2.4.1",
     "ethers": "6.17.0",
     "exceljs": "4.4.0",
     "imapflow": "2.2.6",
@@ -24,7 +30,8 @@
     "mammoth": "1.13.0",
     "nodemailer": "10.0.15",
     "openai": "^7.34.0",
-    "pdfjs-dist": "6.4.299"
+    "pdfjs-dist": "6.4.299",
+    "qrcode-generator": "2.0.4"
   },
   "devDependencies": {
     "electron": "^44.8.0",

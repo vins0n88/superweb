@@ -3,7 +3,7 @@
 // has it, otherwise a native confirmation dialog.
 
 import { dialog, systemPreferences } from 'electron';
-import { createWallet, NETWORKS } from './wallet.js';
+import { createWallet } from './wallet.js';
 import { createWalletProvider, ProviderError } from './wallet-provider.js';
 import { createAssets } from './assets.js';
 
@@ -112,7 +112,11 @@ export async function registerWallet({ ipcMain, router, getTabs, getWin, setting
       return dappOn();
     },
     disconnect: (origin) => provider.disconnect(origin),
-    explorer: (network) => NETWORKS[network]?.explorer ?? '',
+    explorer: (network) => { try { return wallet.net(network).explorer ?? ''; } catch { return ''; } },
+    addNetwork: (n) => wallet.addNetwork(n),
+    removeNetwork: (k) => wallet.removeNetwork(k),
+    addToken: (t) => wallet.addToken(t),
+    removeToken: (t) => wallet.removeToken(t),
   });
   return { wallet, assets, provider };
 }
