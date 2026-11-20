@@ -99,6 +99,13 @@ export function buildMenu({ tab, params = {}, panel, f }) {
   items.push({ label: '工具', submenu: Object.entries(f.apps).filter(([n]) => n !== 'bookmarks').map(([n, a]) => ({ label: `${a.icon}  ${a.title}`, click: () => f.openApp(n) })) });
   items.push({ label: '網路與代理', submenu: f.proxyItems() });
   if (isWeb) items.push({ label: 'H5 遊戲模式', submenu: f.game.menuTemplate(tab.id) });
+  if (isWeb) {
+    items.push({ label: '另存網頁', submenu: [
+      { label: '存成 PDF…', click: () => f.savePage(tab, 'pdf') },
+      { label: '整頁截圖（PNG）…', click: () => f.savePage(tab, 'full') },
+      { label: '目前畫面截圖（PNG）…', click: () => f.savePage(tab, 'visible') },
+    ] });
+  }
 
   // Navigation
   if (tab) {

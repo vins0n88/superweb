@@ -23,6 +23,7 @@ import { createBookmarks, ROOT } from './bookmarks.js';
 import { buildMenu } from './menus.js';
 import { WORLD_MONITOR_VARIANTS, variantUrl, isWorldMonitor } from './worldmonitor.js';
 import { registerAdblock } from './adblock-setup.js';
+import { pagePdf, pagePng, fileNameFor } from './page-export.js';
 
 /** Built-in tool pages, in launcher order. */
 export const APPS = {
@@ -443,6 +444,28 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
       canStart: () => jarvis.canStart(),
       start: () => { try { jarvis.start(); notify({ title: '正在啟動賈維斯', body: '啟動 NATS、Redis、Gateway 與控制台，約需 10–30 秒' }); } catch (err) { notify({ title: '無法啟動賈維斯', body: err.message }); } },
     },
+  };
+  /** 另存網頁: PDF, full-page PNG, or the visible area; asks where to save. */
+  menuFeatures.savePage = async (tab, kind) => {
+    const wc = tab.view.webContents;
+    const ext = kind === 'pdf' ? 'pdf' : 'png';
+    const { canceled, filePath } = await dialog.showSaveDialog(getWin(), {
+      defaultPath: path.join(electronApp.getPath('downloads'), fileNameFor(wc.getTitle(), wc.getURL(), ext)),
+      filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
+    });
+    if (canceled || !filePath) return;
+    try {
+      let note = '';
+      if (kind === 'pdf') await fs.writeFile(filePath, await pagePdf(wc));
+      else {
+        const { png, truncated } = await pagePng(wc, { full: kind === 'full' });
+        await fs.writeFile(filePath, png);
+        if (truncated) note = '（頁面太長，只截到前 16384 像素）';
+      }
+      notify({ title: '已儲存網頁', body: `${path.basename(filePath)}${note}` });
+    } catch (err) {
+      notify({ title: '儲存失敗', body: err.message });
+    }
   };
   const panel = (action) => send('menu-action', action);
   function popup(tab, params) {

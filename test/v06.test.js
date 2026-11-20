@@ -78,7 +78,7 @@ const fakeTab = (url, app = '') => ({ id: 1, url, title: 'T', app, view: { webCo
 
 test('right-click menu: everything is reachable; items follow what is under the pointer', () => {
   const plain = menuFor({ tab: fakeTab('https://a.test/'), params: {} });
-  assert.deepEqual(labels(plain.items), ['AI 助理', '賈維斯 Jarvis', '翻譯這一頁成繁體中文', '去廣告', '收藏', '🌍 世界監控 World Monitor', '工具', '網路與代理', 'H5 遊戲模式', '上一頁', '重新載入']);
+  assert.deepEqual(labels(plain.items), ['AI 助理', '賈維斯 Jarvis', '翻譯這一頁成繁體中文', '去廣告', '收藏', '🌍 世界監控 World Monitor', '工具', '網路與代理', 'H5 遊戲模式', '另存網頁', '上一頁', '重新載入']);
   const ai = plain.items.find((i) => i.label === 'AI 助理').submenu;
   ai.find((i) => i.label === '摘要這一頁').click();
   assert.deepEqual(plain.calls, ['panel:summarize']);
