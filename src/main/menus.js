@@ -104,6 +104,9 @@ export function buildMenu({ tab, params = {}, panel, f }) {
       { label: '存成 PDF…', click: () => f.savePage(tab, 'pdf') },
       { label: '整頁截圖（PNG）…', click: () => f.savePage(tab, 'full') },
       { label: '目前畫面截圖（PNG）…', click: () => f.savePage(tab, 'visible') },
+      { type: 'separator' },
+      { label: '存成 Markdown…', click: () => f.savePage(tab, 'md') },
+      { label: '複製為 Markdown', click: () => f.savePage(tab, 'copy-md') },
     ] });
   }
 

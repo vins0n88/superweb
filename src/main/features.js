@@ -448,7 +448,12 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
   /** 另存網頁: PDF, full-page PNG, or the visible area; asks where to save. */
   menuFeatures.savePage = async (tab, kind) => {
     const wc = tab.view.webContents;
-    const ext = kind === 'pdf' ? 'pdf' : 'png';
+    if (kind === 'copy-md') {
+      clipboard.writeText(await getTabs().runInTab(tab.id, 'pageMarkdown'));
+      notify({ title: '已複製為 Markdown', body: wc.getTitle() });
+      return;
+    }
+    const ext = { pdf: 'pdf', md: 'md' }[kind] ?? 'png';
     const { canceled, filePath } = await dialog.showSaveDialog(getWin(), {
       defaultPath: path.join(electronApp.getPath('downloads'), fileNameFor(wc.getTitle(), wc.getURL(), ext)),
       filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
@@ -457,6 +462,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     try {
       let note = '';
       if (kind === 'pdf') await fs.writeFile(filePath, await pagePdf(wc));
+      else if (kind === 'md') await fs.writeFile(filePath, await getTabs().runInTab(tab.id, 'pageMarkdown'));
       else {
         const { png, truncated } = await pagePng(wc, { full: kind === 'full' });
         await fs.writeFile(filePath, png);

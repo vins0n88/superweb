@@ -167,7 +167,7 @@
         case 'EM': case 'I': out += inner.trim() ? `*${inner.trim()}*` : ''; break;
         case 'CODE': out += `\`${child.textContent}\``; break;
         case 'BR': out += '\n'; break;
-        case 'IMG': out += child.alt ? `![${clip(child.alt, MAX_NAME)}]` : ''; break;
+        case 'IMG': out += exporting && child.src && !child.src.startsWith('data:') ? `![${clip(child.alt, MAX_NAME)}](${child.src})` : child.alt ? `![${clip(child.alt, MAX_NAME)}]` : ''; break;
         default: out += inner;
       }
     }
@@ -186,8 +186,8 @@
   }
 
   function tableMarkdown(table) {
-    const rows = Array.from(table.rows).slice(0, 50).map((row) =>
-      Array.from(row.cells).map((cell) => clip(cell.textContent, 60).replace(/\|/g, '\\|')));
+    const rows = Array.from(table.rows).slice(0, exporting ? 500 : 50).map((row) =>
+      Array.from(row.cells).map((cell) => clip(cell.textContent, exporting ? 300 : 60).replace(/\|/g, '\\|')));
     if (!rows.length) return '';
     const width = Math.max(...rows.map((r) => r.length));
     const pad = (r) => r.concat(Array(width - r.length).fill(''));
@@ -196,6 +196,52 @@
     return lines.join('\n');
   }
 
+  let exporting = false; // pageMarkdown(): clean Markdown for the user (no [§n] labels, image URLs, longer tables)
+  let inArticle = false; // reading an article: menus of links around it are chrome (on list pages the links are the content)
+  const CHROME_ROLES = new Set(['navigation', 'banner', 'contentinfo', 'complementary', 'search', 'dialog', 'alertdialog']);
+  const CHROME_NAMES = /cookie|consent|gdpr|newsletter|subscribe|advert|\bads?\b|sponsor|share|social|breadcrumb|related|promo|popup|modal|paywall|\bmenu\b|navbar|sidebar/i;
+  /** Site chrome around the content: menus, sidebars, banners, cookie notices, share bars. */
+  function isChrome(el) {
+    const tag = el.tagName;
+    if (tag === 'NAV' || tag === 'ASIDE' || tag === 'DIALOG' || CHROME_ROLES.has(el.getAttribute('role')) || el.getAttribute('aria-modal') === 'true') return true;
+    if ((tag === 'HEADER' || tag === 'FOOTER') && !el.closest('article, main, [role="main"]')) return true;
+    const len = el.textContent.length;
+    if (CHROME_NAMES.test(`${el.id} ${typeof el.className === 'string' ? el.className : ''}`) && len < 800) return true;
+    if (!inArticle) return false;
+    const links = el.querySelectorAll('a');
+    return links.length >= 8 && Array.from(links).reduce((n, a) => n + a.textContent.length, 0) > 0.7 * len; // a menu of links
+  }
+  /** The main content: <main>/<article> when marked up, else the block with the most paragraph text and fewest links. */
+  function mainContent() {
+    const marked = document.querySelector('main, [role="main"]') || Array.from(document.querySelectorAll('article')).sort((a, b) => b.textContent.length - a.textContent.length)[0];
+    if (marked) return marked;
+    let best = null;
+    let bestScore = 0;
+    const linkText = (el) => Array.from(el.querySelectorAll('a')).reduce((n, a) => n + a.textContent.length, 0);
+    const laidOut = document.body && document.body.getClientRects().length > 0; // false in test DOMs without layout
+    for (const el of document.querySelectorAll('div, section, td')) {
+      if (isChrome(el) || el.closest('nav, aside, footer, dialog, [role="dialog"], [aria-modal="true"]') || (laidOut && !el.getClientRects().length)) continue;
+      const paras = el.querySelectorAll(':scope > p, :scope > pre, :scope > blockquote');
+      if (!Array.from(paras).some((p) => p.textContent.trim().length >= 40)) continue; // an article has real paragraphs
+      const blocks = [...paras, ...el.querySelectorAll(':scope > ul > li, :scope > ol > li')].filter((c) => linkText(c) < 0.5 * c.textContent.length);
+      const text = blocks.reduce((n, c) => n + c.textContent.trim().length, 0);
+      if (text < 100) continue;
+      const density = linkText(el) / Math.max(1, el.textContent.length);
+      if (density > 0.5) continue; // lists of links (menus, headline lists) are not an article
+      const score = text * (1 - density);
+      if (score > bestScore) { best = el; bestScore = score; }
+    }
+    return best && bestScore > 150 ? best : document.body; // CJK text is dense: 150 characters is a real paragraph
+  }
+  /** Runs fn on the main content, with link menus treated as chrome only inside an article. */
+  function withContent(fn) {
+    const root = mainContent();
+    inArticle = root !== document.body;
+    try { return fn(root); } finally { inArticle = false; }
+  }
+
+  /** "[§n] " before a block for the agent; nothing when exporting. */
+  const label = (el) => (exporting ? '' : `${blockId(el)} `);
   function blockId(el) {
     let id = el.getAttribute(BLOCK_ATTR);
     if (!id) {
@@ -207,47 +253,58 @@
 
   function blockMarkdown(el, out, listDepth) {
     for (const child of el.children) {
-      if (SKIP_TAGS.has(child.tagName) || isHidden(child)) continue;
+      if (SKIP_TAGS.has(child.tagName) || isHidden(child) || isChrome(child)) continue;
       const tag = child.tagName;
       if (/^H[1-6]$/.test(tag)) {
-        out.push(`${'#'.repeat(Number(tag[1]))} ${blockId(child)} ${clip(child.textContent, 200)}`);
+        out.push(`${'#'.repeat(Number(tag[1]))} ${label(child)}${clip(child.textContent, exporting ? 300 : 200)}`);
       } else if (tag === 'PRE') {
-        out.push(blockId(child) + '\n```\n' + child.textContent.replace(/\n+$/, '') + '\n```');
+        out.push(`${label(child).trim()}\n\`\`\`\n${child.textContent.replace(/\n+$/, '')}\n\`\`\``.replace(/^\n/, ''));
       } else if (tag === 'TABLE') {
-        out.push(blockId(child) + '\n' + tableMarkdown(child));
+        out.push(`${label(child).trim()}\n${tableMarkdown(child)}`.replace(/^\n/, ''));
       } else if (tag === 'UL' || tag === 'OL') {
         let index = 1;
         for (const li of child.children) {
           if (li.tagName !== 'LI' || isHidden(li)) continue;
           const bullet = tag === 'OL' ? `${index++}.` : '-';
           const nested = [];
-          const text = hasBlockChild(li) ? '' : inlineMarkdown(li).trim();
+          let text = inlineMarkdown(li).trim();
+          if (hasBlockChild(li)) { // its own words, without the nested list
+            const own = li.cloneNode(true);
+            for (const c of Array.from(own.children)) if (BLOCK_TAGS.has(c.tagName)) c.remove();
+            text = inlineMarkdown(own).replace(/\s+/g, ' ').trim();
+          }
           if (hasBlockChild(li)) blockMarkdown(li, nested, listDepth + 1);
           const indent = '  '.repeat(listDepth);
-          out.push(`${indent}${bullet} ${blockId(li)} ${text || (nested.shift() || '').trim()}`);
+          out.push(`${indent}${bullet} ${label(li)}${text || (nested.shift() || '').trim()}`);
           out.push(...nested);
         }
       } else if (tag === 'BLOCKQUOTE') {
-        out.push(`> ${blockId(child)} ` + clip(child.textContent, 1000));
+        out.push(`> ${label(child)}${clip(child.textContent, exporting ? 5000 : 1000)}`);
       } else if (tag === 'HR') {
         out.push('---');
       } else if (BLOCK_TAGS.has(tag) && hasBlockChild(child)) {
         blockMarkdown(child, out, listDepth);
       } else {
-        const text = inlineMarkdown(child).replace(/[ \t]+/g, ' ').trim();
-        if (text) out.push(`${blockId(child)} ${text}`);
+        const text = inlineMarkdown(tag === 'IMG' ? { childNodes: [child] } : child).replace(/[ \t]+/g, ' ').trim(); // a bare <img> is its own block
+        if (text) out.push(`${label(child)}${text}`);
       }
     }
   }
 
-  /** Main-content Markdown, preferring <main>/<article> over chrome. */
+  /** Main-content Markdown with [§n] labels for citations; site chrome left out. */
   function readPage() {
-    const root = document.querySelector('main, article, [role="main"]') || document.body;
     const out = [`# ${clip(document.title, 200)}`, `Source: ${location.href}`];
-    if (root) blockMarkdown(root, out, 0);
+    withContent((root) => root && blockMarkdown(root, out, 0));
     let md = out.filter(Boolean).join('\n\n');
     if (md.length > MAX_MD_CHARS) md = md.slice(0, MAX_MD_CHARS) + '\n\n… (truncated)';
     return md;
+  }
+  /** The same main content as clean Markdown to save or copy (no labels, no length cap). */
+  function pageMarkdown() {
+    exporting = true;
+    const out = [`# ${clip(document.title, 300)}`, `> 來源：<${location.href}>　擷取時間：${new Date().toLocaleString()}`];
+    try { withContent((root) => root && blockMarkdown(root, out, 0)); } finally { exporting = false; }
+    return `${out.filter((l) => l.trim()).join('\n\n')}\n`;
   }
 
   function byRef(ref) {
@@ -437,7 +494,7 @@
   }
 
   window.__superweb = {
-    snapshot, readPage, click, type, select, scroll, selectionText,
+    snapshot, readPage, pageMarkdown, click, type, select, scroll, selectionText,
     inspect, highlight, selectionInfo, replaceSelection, describeElement,
   };
 })();
