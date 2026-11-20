@@ -6,6 +6,7 @@ import { Worker } from 'node:worker_threads';
 import { app, session, net, webContents } from 'electron';
 import { AGENT_PARTITION } from './tabs.js';
 import { createAdblock, adblockMenu } from './adblock.js';
+import { blocksSubresource } from './security/network.js';
 
 export function registerAdblock({ ipcMain, settings, dataDir, getTabs, notify }) {
   const adblock = createAdblock({
@@ -25,8 +26,14 @@ export function registerAdblock({ ipcMain, settings, dataDir, getTabs, notify })
     pageUrl: (id) => webContents.fromId(id)?.getURL() ?? '',
   });
   const cosmeticPreload = createRequire(import.meta.url).resolve('@ghostery/adblocker-electron-preload');
+  // Agent tabs also get S13: a public page's scripts may not reach the private network.
+  const agentGuard = (d, cb) => {
+    const page = d.resourceType === 'mainFrame' ? '' : webContents.fromId(d.webContentsId ?? -1)?.getURL() ?? '';
+    if (page && blocksSubresource(d.url, page, settings.data.sites?.privateAllowed)) return cb({ cancel: true });
+    return adblock.onBeforeRequest(d, cb);
+  };
   for (const ses of [session.defaultSession, session.fromPartition(AGENT_PARTITION)]) {
-    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, adblock.onBeforeRequest);
+    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, ses === session.defaultSession ? adblock.onBeforeRequest : agentGuard);
     ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, adblock.onHeadersReceived);
     ses.registerPreloadScript({ type: 'frame', filePath: cosmeticPreload });
   }

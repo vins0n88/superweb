@@ -5,6 +5,7 @@ import { normalizeInput } from '../url.js';
 import {
   siteTier, hostOf, hostAllowed, isHighRiskElement, isHighRiskName, isBenignGetForm, sensitiveTextKind, exfiltrationSignal,
 } from './policy.js';
+import { privateTarget, privateListed } from './network.js';
 
 const PAGE_TOOLS = new Set(['snapshot', 'read_page', 'click', 'type', 'select_option', 'scroll']);
 
@@ -14,14 +15,23 @@ const PAGE_TOOLS = new Set(['snapshot', 'read_page', 'click', 'type', 'select_op
  * @param {() => string} deps.activeUrl
  * @param {(ref: number) => Promise<object>} deps.inspect  element facts from the page
  * @param {() => string} [deps.searchTemplate]
+ * @param {(host: string) => Promise<{address: string}[]>} [deps.lookup]  DNS (tests inject)
  */
-export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searchTemplate = () => '' }) {
-  function navigationVerdict(rawUrl, task) {
+export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searchTemplate = () => '', lookup }) {
+  async function navigationVerdict(rawUrl, task) {
     const url = normalizeInput(rawUrl, searchTemplate() || undefined);
     const host = hostOf(url);
     const tier = siteTier(url, sites());
     if (tier === 'blocked') return { action: 'block', reason: `${host} is on the blocked-sites list (S5)` };
     if (!host) return { action: 'allow' };
+    // S13: loopback/LAN only when the user named it in the task or allow-listed it; no approval can open it.
+    const named = hostAllowed(host, task.allowedDomains ?? []) || String(task.goal ?? '').toLowerCase().includes(host);
+    if (!named && !privateListed(host, sites().privateAllowed)) {
+      const target = await privateTarget(host, lookup);
+      if (target) {
+        return { action: 'block', reason: `${host}${target !== host ? ` (${target})` : ''} is on your private network; the agent may not open it unless you name it in the task or add it to Settings → Security → private addresses the agent may reach (S13)`, event: 'sensitive_action_blocked' };
+      }
+    }
     const allowed = hostAllowed(host, task.allowedDomains);
     if (!allowed) {
       const leak = exfiltrationSignal(url, task.recentContent, { goal: task.goal });
@@ -108,7 +118,7 @@ export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searc
       if (facts.href) {
         const target = hostOf(facts.href);
         if (target && !hostAllowed(target, task.allowedDomains) && target !== hostOf(url)) {
-          const verdict = navigationVerdict(facts.href, task);
+          const verdict = await navigationVerdict(facts.href, task);
           if (verdict.action !== 'allow') return verdict;
         }
       }

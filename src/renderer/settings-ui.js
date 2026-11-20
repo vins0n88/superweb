@@ -67,6 +67,7 @@ export function initSettings({ api, panel }) {
     $('s-agent-profile').checked = settings.agentProfileOnly;
     $('s-sensitive').value = settings.sites.sensitive.join('\n');
     $('s-blocked').value = settings.sites.blocked.join('\n');
+    $('s-private').value = (settings.sites.privateAllowed ?? []).join('\n');
     $('s-builtin').textContent = `Built in (${settings.builtinSensitive.length}): ${settings.builtinSensitive.join(', ')}`;
     $('s-error').hidden = true;
     $('s-google-id').value = settings.integrations.google.clientId;
@@ -101,7 +102,7 @@ export function initSettings({ api, panel }) {
       requirePlan: $('s-plan').checked,
       verifyResults: $('s-verify').checked,
       agentProfileOnly: $('s-agent-profile').checked,
-      sites: { sensitive: lines($('s-sensitive').value), blocked: lines($('s-blocked').value) },
+      sites: { sensitive: lines($('s-sensitive').value), blocked: lines($('s-blocked').value), privateAllowed: lines($('s-private').value) },
       mcp: { enabled: $('s-mcp-enabled').checked, port: Number($('s-mcp-port').value), ...extra },
       integrations: {
         google: { clientId: $('s-google-id').value, clientSecret: $('s-google-secret').value },

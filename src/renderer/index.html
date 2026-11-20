@@ -173,6 +173,10 @@
         <label>Blocked sites: the agent may not read or operate them
           <textarea id="s-blocked" rows="3" spellcheck="false" placeholder="internal.company.com"></textarea>
         </label>
+        <label>AI 可連的內網位址：AI 預設不能開 localhost、192.168.x、.local 等內網位址（一行一個）
+          <textarea id="s-private" rows="2" spellcheck="false" placeholder="192.168.1.10&#10;nas.local"></textarea>
+          <span class="muted small">任務裡直接寫出的內網位址不用加；加在這裡的位址 AI 每次都能開，請只加你信任的設備。</span>
+        </label>
       </fieldset>
 
       <fieldset>

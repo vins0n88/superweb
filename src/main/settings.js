@@ -8,6 +8,7 @@ import { DEFAULT_SEARCH } from './url.js';
 import { MCP_DEFAULT_PORT, newToken } from './mcp-server.js';
 import { DEFAULT_SENSITIVE_DOMAINS } from './security/policy.js';
 import { WORLD_MONITOR_HOME, OLD_DEFAULT_HOME } from './worldmonitor.js';
+import { cleanPrivateEntries } from './security/network.js';
 
 const MAX_SITE_ENTRIES = 500;
 const TRANSLATE_TARGETS = ['zh-Hant', 'zh-Hans', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'th', 'vi'];
@@ -21,7 +22,7 @@ export const DEFAULTS = {
   requirePlan: true,          // F2.2: plan preview before any action
   verifyResults: true,        // F2.4: self-check the outcome after tasks with actions
   agentProfileOnly: false,    // S7: agent only operates tabs in the dedicated agent profile
-  sites: { sensitive: [], blocked: [] }, // S5: user additions on top of the built-in list
+  sites: { sensitive: [], blocked: [], privateAllowed: [] }, // S5 user additions; S13 private addresses the agent may reach
   mcp: { enabled: false, port: MCP_DEFAULT_PORT, token: '' },
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
   superai: { enabled: false, url: '' }, // SuperAI integration; url '' = discover the running app (token lives in keys)
@@ -121,6 +122,10 @@ export class Settings {
         if (!Array.isArray(patch.sites[tier])) throw new Error(`${tier} sites must be a list`);
         sites[tier] = [...new Set(patch.sites[tier].map((e) => String(e).trim().toLowerCase().replace(/^https?:\/\//, ''))
           .filter((e) => /^[a-z0-9.-]+\.[a-z]{2,}(\/\S*)?$/.test(e)))].slice(0, MAX_SITE_ENTRIES);
+      }
+      if (patch.sites.privateAllowed !== undefined) {
+        if (!Array.isArray(patch.sites.privateAllowed)) throw new Error('privateAllowed must be a list');
+        sites.privateAllowed = cleanPrivateEntries(patch.sites.privateAllowed);
       }
       this.data.sites = sites;
     }
