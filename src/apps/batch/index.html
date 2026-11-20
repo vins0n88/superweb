@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>批量擷取</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<link rel="stylesheet" href="batch.css">
+</head>
+<body>
+<div class="page">
+  <div class="head"><h1>📑 批量擷取</h1></div>
+  <p class="muted small">貼上一批網址，SuperWeb 會在背景同時開啟、讀出每頁的標題、摘要、正文與你要的欄位，整理成一張表。會遵守網站的 robots.txt（設定 → 安全性可關閉），也套用去廣告與防指紋。</p>
+  <p id="msg" class="small" hidden></p>
+  <form id="form" class="card grid">
+    <label>網址（一行一個，最多 200 個）<textarea id="urls" rows="6" spellcheck="false" placeholder="https://example.com/product/1&#10;https://example.com/product/2"></textarea></label>
+    <div class="row small"><span id="count" class="muted grow">0 個網址</span>
+      <label>用哪個身分讀取 <select id="identity"></select></label>
+      <label>同時開啟 <select id="concurrency"><option>3</option><option selected>6</option><option>9</option><option>12</option></select> 頁</label>
+    </div>
+    <div>
+      <div class="row"><strong class="grow">自訂欄位（選填）</strong><button type="button" class="btn small" id="add-field">＋ 加欄位</button></div>
+      <p class="small muted">「CSS 選擇器」直接從網頁讀（例：<code>.price</code>、<code>h1</code>，讀屬性用 <code>a.buy @href</code>）；「AI 描述」交給 AI 讀每一頁後填寫（例：「商品價格，含幣別」），較慢但不用懂網頁結構。</p>
+      <div id="fields" class="grid"></div>
+    </div>
+    <div class="row"><span class="grow"></span><button class="btn primary" id="start">開始擷取</button></div>
+  </form>
+  <div class="card" id="run" hidden>
+    <div class="row"><strong class="grow" id="progress-text"></strong><button type="button" class="btn small" id="cancel">停止</button><button type="button" class="btn small primary" id="export">匯出 CSV</button></div>
+    <progress id="progress" max="1" value="0"></progress>
+    <div class="table-wrap"><table id="table"></table></div>
+  </div>
+</div>
+<script src="batch.js" type="module"></script>
+</body>
+</html>

@@ -24,6 +24,7 @@ import { WORLD_MONITOR_VARIANTS, variantUrl, isWorldMonitor } from './worldmonit
 import { registerAdblock } from './adblock-setup.js';
 import { registerProfiles } from './profiles.js';
 import { registerFingerprint } from './fingerprint.js';
+import { registerBatch } from './batch-setup.js';
 import { pagePdf, pagePng, fileNameFor } from './page-export.js';
 
 /** Built-in tool pages, in launcher order. */
@@ -38,6 +39,7 @@ export const APPS = {
   bookmarks: { title: '收藏夾', icon: '⭐' },
   jarvis: { title: '賈維斯 Jarvis 2.0', icon: '🤖' },
   profiles: { title: '身分', icon: '👤' },
+  batch: { title: '批量擷取', icon: '📑' },
 };
 
 /**
@@ -50,7 +52,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs, version, dataDir, srcDir, notify, sessions }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs, version, dataDir, srcDir, notify, sessions, robots }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -371,6 +373,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     return out.length ? out : [{ label: '（空的）', enabled: false }];
   }
   const privacyItems = registerFingerprint({ ipcMain, sessions, settings, preloadPath: path.join(srcDir, 'preload', 'fingerprint.cjs') });
+  registerBatch({ router, sessions, settings, robots, newSession, srcDir, getWin, notify, audit: writeAudit });
   const identityItems = registerProfiles({ router, settings, sessions, getTabs, homepage: () => settings.data.homepage });
   router.register('bookmarks', {
     tree: () => bookmarks.tree(),

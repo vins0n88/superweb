@@ -459,12 +459,12 @@ app.whenReady().then(() => {
   const data = createDataSources();
   const jarvis = createJarvis({ config: () => ({ url: settings.data.jarvis.url, repo: settings.data.jarvis.repo || JARVIS_DEFAULT_REPO, token: settings.getKey('jarvis:token') }) });
   sessions ??= createSessions(session); // before anything hooks into sessions
+  const robots = createRobots({ fetchText: async (url) => { const r = await net.fetch(url, { signal: AbortSignal.timeout(5000) }); return { status: r.status, text: r.status < 300 ? await r.text() : '' }; } });
   const tabLogs = createTabLogs();
   installTabLogs(tabLogs, { app, sessions });
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis, tabLogs,
-    robots: createRobots({ fetchText: async (url) => { const r = await net.fetch(url, { signal: AbortSignal.timeout(5000) }); return { status: r.status, text: r.status < 300 ? await r.text() : '' }; } }) });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis, tabLogs, robots });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify, sessions });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify, sessions, robots });
   buildMenu();
   createWindow();
   host.syncMcp();
