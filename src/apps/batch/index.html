@@ -14,6 +14,7 @@
   <form id="form" class="card grid">
     <label>網址（一行一個，最多 200 個）<textarea id="urls" rows="6" spellcheck="false" placeholder="https://example.com/product/1&#10;https://example.com/product/2"></textarea></label>
     <div class="row small"><span id="count" class="muted grow">0 個網址</span>
+      <label>引擎 <select id="engine"><option value="chromium">Chromium（建議）</option><option value="obscura">Obscura（實驗性，匿名讀取）</option></select></label>
       <label>用哪個身分讀取 <select id="identity"></select></label>
       <label>同時開啟 <select id="concurrency"><option>3</option><option selected>6</option><option>9</option><option>12</option></select> 頁</label>
     </div>
@@ -26,6 +27,7 @@
   </form>
   <div class="card" id="run" hidden>
     <div class="row"><strong class="grow" id="progress-text"></strong><button type="button" class="btn small" id="cancel">停止</button><button type="button" class="btn small primary" id="export">匯出 CSV</button></div>
+    <p id="note" class="small warn" hidden></p>
     <progress id="progress" max="1" value="0"></progress>
     <label class="row small"><input type="checkbox" id="watch"> 顯示即時畫面（正在讀的頁面）</label>
     <div id="frames" class="frames" hidden></div>

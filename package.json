@@ -92,7 +92,17 @@
         "width": 560,
         "height": 380
       }
-    }
+    },
+    "extraResources": [
+      {
+        "from": "vendor/obscura",
+        "to": "obscura",
+        "filter": [
+          "obscura-worker",
+          "LICENSE"
+        ]
+      }
+    ]
   },
   "overrides": {
     "@ghostery/adblocker": "2.18.2",

@@ -39,6 +39,8 @@ function renderTable(st) {
   $('progress').value = st.done;
   $('progress-text').textContent = `${st.status === 'running' ? '擷取中' : st.status === 'done' ? '完成' : '已停止'}：${st.done}/${st.total}，失敗 ${st.failed}`;
   $('cancel').hidden = st.status !== 'running';
+  $('note').hidden = !st.note;
+  $('note').textContent = st.note ?? '';
   $('table').replaceChildren(
     el('thead', {}, el('tr', {}, ...st.columns.map((c) => el('th', { textContent: LABEL[c] ?? c })))),
     el('tbody', {}, ...st.rows.map((r) => el('tr', {}, ...st.columns.map((c) => {
@@ -59,7 +61,7 @@ app.on('changed', (st) => { if (st.id === runId) refresh(); });
 $('form').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    runId = await app.call('start', { urls: $('urls').value, concurrency: Number($('concurrency').value), profile: $('identity').value, fields: fieldsOf() });
+    runId = await app.call('start', { urls: $('urls').value, concurrency: Number($('concurrency').value), profile: $('identity').value, engine: $('engine').value, fields: fieldsOf() });
     say('');
     refresh();
   } catch (err) {
@@ -83,6 +85,11 @@ setInterval(async () => {
   $('frames').replaceChildren(...frames.filter((f) => f.src).map((f) => el('figure', {}, el('img', { src: f.src, alt: '' }), el('figcaption', { textContent: f.url }))));
   if (!frames.length) $('frames').replaceChildren(el('p', { className: 'muted small', textContent: '目前沒有正在讀取的頁面' }));
 }, 1500);
+
+// Obscura reads anonymously (its own engine has no SuperWeb logins), so the identity choice only applies to Chromium.
+const engines = await app.call('engines');
+if (!engines.obscura) $('engine').querySelector('[value="obscura"]').disabled = true;
+$('engine').addEventListener('change', () => { $('identity').disabled = $('engine').value === 'obscura'; $('identity').title = $('identity').disabled ? 'Obscura 引擎以匿名方式讀取，不使用登入身分' : ''; });
 
 const ids = await app.call('identities');
 $('identity').replaceChildren(...ids.map((i) => el('option', { value: i.id, textContent: i.name })));

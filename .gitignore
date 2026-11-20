@@ -5,3 +5,6 @@ dist/
 *.log
 .DS_Store
 e2e/results/
+
+# Built locally by scripts/build-obscura.sh (large binary)
+vendor/obscura/

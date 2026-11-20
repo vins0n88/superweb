@@ -7,17 +7,20 @@ import { BrowserWindow, dialog } from 'electron';
 import { partitionOf } from './sessions.js';
 import { createBatch } from './batch.js';
 import { thumbnail } from './page-export.js';
+import { createObscuraReader } from './obscura.js';
 
 const LOAD_TIMEOUT_MS = 30000;
 const SETTLE_MS = 800;
 const ISOLATED_WORLD = 1999;
 const withTimeout = (p, ms, msg) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(msg)), ms); })]).finally(() => clearTimeout(t)); };
 
-export function registerBatch({ router, sessions, settings, robots, newSession, srcDir, getWin, notify, audit }) {
+export function registerBatch({ router, sessions, settings, robots, newSession, srcDir, getWin, notify, audit, obscuraWorker = '', proxyMode = () => 'direct' }) {
   const agentPage = fs.readFileSync(path.join(srcDir, 'page', 'agent-page.js'), 'utf8');
   const reading = new Map(); // url -> hidden window, for live previews
 
-  async function read(url, profile, source) {
+  const obscura = obscuraWorker ? createObscuraReader({ workerPath: obscuraWorker }) : null;
+  async function read(url, profile, source, engine) {
+    if (engine === 'obscura') return obscura(url, source, { prelude: agentPage });
     sessions.get(profile); // its session is configured (ad blocking, privacy, proxy) before loading
     const win = new BrowserWindow({ show: false, width: 1280, height: 900, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, ...(partitionOf(profile) ? { partition: partitionOf(profile) } : {}) } });
     reading.set(url, win);
@@ -51,9 +54,16 @@ export function registerBatch({ router, sessions, settings, robots, newSession, 
 
   router.register('batch', {
     identities: () => [{ id: 'agent', name: 'AI 專用（預設）' }, { id: 'default', name: '個人' }, ...(settings.data.profiles ?? []).map((p) => ({ id: p.id, name: p.name }))],
+    engines: () => ({ obscura: Boolean(obscura), proxy: proxyMode() }),
     start(opts) {
       const ok = ['agent', 'default', ...(settings.data.profiles ?? []).map((p) => p.id)];
-      const id = batch.start({ ...opts, profile: ok.includes(opts?.profile) ? opts.profile : 'agent' });
+      let engine = opts?.engine === 'obscura' && obscura ? 'obscura' : 'chromium';
+      let note = '';
+      if (engine === 'obscura' && proxyMode() !== 'direct') {
+        engine = 'chromium';
+        note = '你設定了代理或系統代理，Obscura 引擎不經過它，所以這次改用 Chromium 引擎。';
+      }
+      const id = batch.start({ ...opts, engine, note, profile: ok.includes(opts?.profile) ? opts.profile : 'agent' });
       audit({ source: 'batch', type: 'batch_start', summary: `${batch.state(id).total} URLs`, jobId: id });
       return id;
     },

@@ -90,7 +90,7 @@ function limiter(n) {
 
 /**
  * @param {object} deps
- * @param {(url: string, profile: string, source: string) => Promise<object>} deps.read  loads a URL hidden, runs `source`, closes
+ * @param {(url: string, profile: string, source: string, engine: string) => Promise<object>} deps.read  loads a URL hidden, runs `source`, closes
  * @param {{allows: (url: string) => Promise<boolean>}} deps.robots
  * @param {() => boolean} deps.obeyRobots
  * @param {(prompt: string) => Promise<string>} deps.ask  one AI completion
@@ -99,18 +99,18 @@ function limiter(n) {
 export function createBatch({ read, robots, obeyRobots, ask, onChange = () => {} }) {
   const runs = new Map();
   const summary = (r) => ({ id: r.id, status: r.status, total: r.urls.length, done: r.rows.filter((x) => x.status !== 'pending' && x.status !== 'running').length,
-    failed: r.rows.filter((x) => x.status === 'error').length, columns: r.columns, startedAt: r.startedAt, endedAt: r.endedAt, profile: r.profile });
+    failed: r.rows.filter((x) => x.status === 'error').length, columns: r.columns, startedAt: r.startedAt, endedAt: r.endedAt, profile: r.profile, engine: r.engine, note: r.note });
   /** For the page: rows with the main text cut to a preview (the CSV keeps more). */
   const view = (r) => ({ ...summary(r), rows: r.rows.map((x) => ({ ...x, text: x.text ? String(x.text).slice(0, 300) : x.text })) });
   return {
     /** Starts a run; returns its id right away. */
-    start({ urls, concurrency = 6, profile = 'agent', fields = [] }) {
+    start({ urls, concurrency = 6, profile = 'agent', fields = [], engine = 'chromium', note = '' }) {
       const list = parseUrls(Array.isArray(urls) ? urls.join('\n') : urls);
       if (!list.length) throw new Error('請貼上至少一個網址（http:// 或 https://）');
       const f = cleanFields(fields);
       const n = Math.max(1, Math.min(MAX_CONCURRENCY, Number(concurrency) || 6));
       const id = crypto.randomUUID();
-      const r = { id, urls: list, profile, status: 'running', startedAt: Date.now(), endedAt: null, columns: [...BUILTIN, ...f.map((x) => x.name)], rows: list.map((url) => ({ url, status: 'pending' })), cancelled: false };
+      const r = { id, urls: list, profile, engine, note, status: 'running', startedAt: Date.now(), endedAt: null, columns: [...BUILTIN, ...f.map((x) => x.name)], rows: list.map((url) => ({ url, status: 'pending' })), cancelled: false };
       runs.set(id, r);
       const aiGate = limiter(AI_CONCURRENCY);
       const source = extractSource(f);
@@ -123,7 +123,7 @@ export function createBatch({ read, robots, obeyRobots, ask, onChange = () => {}
             Object.assign(row, { status: 'skipped', error: 'robots.txt 不允許自動程式讀取（設定 → 安全性可關閉）' });
             return;
           }
-          const page = await read(row.url, profile, source);
+          const page = await read(row.url, profile, source, engine);
           Object.assign(row, { title: page.title, description: page.description, words: page.words, text: page.text, ...page.fields });
           if (f.some((x) => x.ai) && !r.cancelled) Object.assign(row, await aiGate(() => aiFields(ask, f, { url: row.url, text: page.text })));
           row.status = 'ok';

@@ -25,6 +25,7 @@ import { registerAdblock } from './adblock-setup.js';
 import { registerProfiles } from './profiles.js';
 import { registerFingerprint } from './fingerprint.js';
 import { registerBatch } from './batch-setup.js';
+import { obscuraWorkerPath } from './obscura.js';
 import { pagePdf, pagePng, fileNameFor } from './page-export.js';
 
 /** Built-in tool pages, in launcher order. */
@@ -373,7 +374,8 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     return out.length ? out : [{ label: '（空的）', enabled: false }];
   }
   const privacyItems = registerFingerprint({ ipcMain, sessions, settings, preloadPath: path.join(srcDir, 'preload', 'fingerprint.cjs') });
-  registerBatch({ router, sessions, settings, robots, newSession, srcDir, getWin, notify, audit: writeAudit });
+  registerBatch({ router, sessions, settings, robots, newSession, srcDir, getWin, notify, audit: writeAudit, proxyMode: () => proxy.state().mode,
+    obscuraWorker: obscuraWorkerPath({ packaged: electronApp.isPackaged, resourcesPath: process.resourcesPath, appRoot: path.join(srcDir, '..') }) });
   const identityItems = registerProfiles({ router, settings, sessions, getTabs, homepage: () => settings.data.homepage });
   router.register('bookmarks', {
     tree: () => bookmarks.tree(),
