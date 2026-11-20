@@ -25,6 +25,7 @@ export const DEFAULTS = {
   agentProfileOnly: false,    // S7: agent only operates tabs in the dedicated agent profile
   robotsForJobs: true,        // S14: background jobs, schedules and batch scraping follow robots.txt
   profiles: [],               // browsing identities the user added: [{id, name, color}] (sessions.js)
+  privacy: { fingerprint: true, allow: [] }, // fingerprint protection; allow = sites where it is off
   sites: { sensitive: [], blocked: [], privateAllowed: [] }, // S5 user additions; S13 private addresses the agent may reach
   mcp: { enabled: false, port: MCP_DEFAULT_PORT, token: '' },
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
@@ -56,6 +57,7 @@ export class Settings {
         api: { ...DEFAULTS.api, ...saved.api },
         jarvis: { ...DEFAULTS.jarvis, ...saved.jarvis },
         adblock: { ...DEFAULTS.adblock, ...saved.adblock },
+        privacy: { ...DEFAULTS.privacy, ...saved.privacy },
         walletconnect: { ...DEFAULTS.walletconnect, ...saved.walletconnect },
         integrations: {
           google: { ...DEFAULTS.integrations.google, ...saved.integrations?.google },
@@ -120,6 +122,15 @@ export class Settings {
     if (patch.agentProfileOnly !== undefined) this.data.agentProfileOnly = Boolean(patch.agentProfileOnly);
     if (patch.robotsForJobs !== undefined) this.data.robotsForJobs = Boolean(patch.robotsForJobs);
     if (patch.profiles !== undefined) this.data.profiles = cleanProfiles(patch.profiles);
+    if (patch.privacy) {
+      const p = { ...DEFAULTS.privacy, ...this.data.privacy };
+      if (patch.privacy.fingerprint !== undefined) p.fingerprint = Boolean(patch.privacy.fingerprint);
+      if (patch.privacy.allow !== undefined) {
+        if (!Array.isArray(patch.privacy.allow)) throw new Error('privacy allowlist must be a list');
+        p.allow = [...new Set(patch.privacy.allow.map((e) => String(e).trim().toLowerCase()).filter((e) => /^[a-z0-9.-]+\.[a-z0-9-]{2,}$/.test(e)))].slice(0, 500);
+      }
+      this.data.privacy = p;
+    }
     if (patch.sites) {
       const sites = { ...DEFAULTS.sites, ...this.data.sites };
       for (const tier of ['sensitive', 'blocked']) {

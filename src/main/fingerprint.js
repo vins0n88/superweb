@@ -1,0 +1,134 @@
+// Privacy: fingerprint protection in the spirit of Brave's "farbling". Canvas, WebGL and
+// audio read-backs get a little noise that is the same on one site (pages keep working)
+// but different between sites and identities and after every restart (sites cannot link
+// you), the exact GPU model is generalised, and core/memory counts are rounded. The
+// User-Agent is left alone so sites keep working. Not an anti-bot tool: nothing is hidden
+// from bot detection.
+
+import crypto from 'node:crypto';
+import { getDomain } from 'tldts-experimental';
+
+/** The site a URL belongs to (eTLD+1), so subdomains share one fingerprint. */
+export const siteKey = (url) => {
+  try {
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol)) return '';
+    return getDomain(u.hostname, { allowPrivateDomains: true }) || u.hostname;
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * @param {{config: () => {enabled: boolean, allow: string[]}}} deps
+ */
+export function createFingerprint({ config }) {
+  const keys = new WeakMap(); // session → random key for this run
+  const keyOf = (ses) => {
+    if (!keys.has(ses)) keys.set(ses, crypto.randomBytes(32));
+    return keys.get(ses);
+  };
+  return {
+    /** Seed for a frame, or 0 when protection is off for it. */
+    seedFor(ses, url) {
+      const site = siteKey(url);
+      const { enabled, allow } = config();
+      if (!enabled || !site || allow.some((a) => site === a || site.endsWith(`.${a}`))) return 0;
+      return crypto.createHmac('sha256', keyOf(ses)).update(site).digest().readUInt32LE(0) || 1;
+    },
+  };
+}
+
+/**
+ * Hooks fingerprint protection into every identity: a frame preload asks for its patch,
+ * keyed by the top-level site so an embedded tracker sees different noise on every site.
+ */
+export function registerFingerprint({ ipcMain, sessions, settings, preloadPath }) {
+  const fp = createFingerprint({ config: () => ({ enabled: settings.data.privacy?.fingerprint !== false, allow: settings.data.privacy?.allow ?? [] }) });
+  ipcMain.on('fp:source', (e, url) => {
+    const top = e.senderFrame?.top?.url || url;
+    const seed = fp.seedFor(e.sender.session, top);
+    e.returnValue = seed ? patchSource(seed) : '';
+  });
+  sessions.configure((ses) => ses.registerPreloadScript({ type: 'frame', filePath: preloadPath }));
+  const save = (patch) => { settings.update({ privacy: { ...settings.data.privacy, ...patch } }); settings.save(); };
+  /** Items for the 去廣告與隱私 menu (reload to apply). */
+  return function privacyItems(tab, reload) {
+    const on = settings.data.privacy?.fingerprint !== false;
+    const allow = settings.data.privacy?.allow ?? [];
+    const site = siteKey(tab?.url ?? '');
+    const off = site && allow.includes(site);
+    return [
+      { label: '防指紋追蹤', type: 'checkbox', checked: on, click: () => { save({ fingerprint: !on }); reload(); } },
+      ...(site ? [{ label: off ? `在 ${site} 恢復防指紋` : `在 ${site} 停用防指紋（網站不正常時）`, enabled: on, click: () => { save({ allow: off ? allow.filter((a) => a !== site) : [...allow, site] }); reload(); } }] : []),
+    ];
+  };
+}
+
+/** Runs in the page's main world before its scripts. `seed` makes the noise per site. */
+export function patchSource(seed) {
+  return `(${pagePatch.toString()})(${Number(seed) >>> 0});`;
+}
+
+/* eslint-disable no-param-reassign */
+function pagePatch(seed) {
+  if (window.__swFarbled) return;
+  Object.defineProperty(window, '__swFarbled', { value: true });
+  let s = seed;
+  const rand = () => { s |= 0; s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const noise = new Uint32Array(64).map(() => rand() * 4294967296); // fixed per site
+  /** Flips the lowest bit of a few colour values chosen by position (stable for the same image). */
+  const farble = (data) => {
+    const px = data.length >> 2;
+    if (!px) return;
+    for (let k = 0; k < Math.min(16, px); k++) {
+      const i = (noise[k] % px) * 4 + (noise[k + 16] % 3);
+      data[i] ^= 1;
+    }
+  };
+  const wrap = (proto, name, make) => {
+    const orig = proto && proto[name];
+    if (typeof orig !== 'function') return;
+    const fn = make(orig);
+    Object.defineProperty(fn, 'name', { value: name });
+    Object.defineProperty(proto, name, { value: fn, writable: true, configurable: true });
+  };
+  const C2D = window.CanvasRenderingContext2D?.prototype;
+  wrap(C2D, 'getImageData', (orig) => function getImageData(...a) { const img = orig.apply(this, a); farble(img.data); return img; });
+  /** toDataURL/toBlob: export a farbled copy, never touching the page's own canvas. */
+  const copy = (canvas) => {
+    if (!canvas.width || !canvas.height) return canvas;
+    const c = document.createElement('canvas');
+    c.width = canvas.width; c.height = canvas.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(canvas, 0, 0);
+    const img = ctx.getImageData(0, 0, c.width, c.height); // farbled by the patch above
+    ctx.putImageData(img, 0, 0);
+    return c;
+  };
+  const CAN = window.HTMLCanvasElement?.prototype;
+  wrap(CAN, 'toDataURL', (orig) => function toDataURL(...a) { return orig.apply(copy(this), a); });
+  wrap(CAN, 'toBlob', (orig) => function toBlob(...a) { return orig.apply(copy(this), a); });
+  for (const GL of [window.WebGLRenderingContext?.prototype, window.WebGL2RenderingContext?.prototype]) {
+    wrap(GL, 'getParameter', (orig) => function getParameter(p) {
+      if (p === 0x9245) return 'Apple Inc.'; // UNMASKED_VENDOR_WEBGL
+      if (p === 0x9246) return 'Apple GPU'; // UNMASKED_RENDERER_WEBGL: no exact chip
+      return orig.call(this, p);
+    });
+    wrap(GL, 'readPixels', (orig) => function readPixels(...a) { const r = orig.apply(this, a); if (a[6] && a[6].length) farble(a[6]); return r; });
+  }
+  const AB = window.AudioBuffer?.prototype;
+  wrap(AB, 'getChannelData', (orig) => function getChannelData(...a) {
+    const d = orig.apply(this, a);
+    for (let k = 0; k < Math.min(32, d.length); k++) d[noise[k % 64] % d.length] += (noise[(k + 32) % 64] / 4294967296 - 0.5) * 1e-7;
+    return d;
+  });
+  wrap(window.AnalyserNode?.prototype, 'getFloatFrequencyData', (orig) => function getFloatFrequencyData(arr) {
+    orig.call(this, arr);
+    for (let k = 0; k < Math.min(16, arr.length); k++) arr[noise[k] % arr.length] += (noise[k + 16] / 4294967296 - 0.5) * 1e-4;
+  });
+  const NAV = Object.getPrototypeOf(navigator);
+  const round = (name, value) => { if (name in navigator) Object.defineProperty(NAV, name, { get: () => value, configurable: true }); };
+  round('hardwareConcurrency', 8);
+  round('deviceMemory', 8);
+}

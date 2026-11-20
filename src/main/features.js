@@ -23,6 +23,7 @@ import { buildMenu } from './menus.js';
 import { WORLD_MONITOR_VARIANTS, variantUrl, isWorldMonitor } from './worldmonitor.js';
 import { registerAdblock } from './adblock-setup.js';
 import { registerProfiles } from './profiles.js';
+import { registerFingerprint } from './fingerprint.js';
 import { pagePdf, pagePng, fileNameFor } from './page-export.js';
 
 /** Built-in tool pages, in launcher order. */
@@ -369,6 +370,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     const out = [...subs, ...links];
     return out.length ? out : [{ label: '（空的）', enabled: false }];
   }
+  const privacyItems = registerFingerprint({ ipcMain, sessions, settings, preloadPath: path.join(srcDir, 'preload', 'fingerprint.cjs') });
   const identityItems = registerProfiles({ router, settings, sessions, getTabs, homepage: () => settings.data.homepage });
   router.register('bookmarks', {
     tree: () => bookmarks.tree(),
@@ -436,7 +438,8 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
 
   // ---- The right-click menu (also ☰ and right-click on the browser chrome) ----
   const menuFeatures = {
-    translator, game, proxyItems, adblockItems, identityItems, apps: APPS, openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
+    translator, game, proxyItems, adblockItems, identityItems, apps: APPS,
+    privacyItems: (tab) => privacyItems(tab, () => getTabs().active()?.view.webContents.reload()), openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
     target: () => settings.data.translate.target,
     translateSelection: (tab, text) => translateSelection(tab, text),
     openTab: (url) => getTabs().create(url),

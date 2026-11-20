@@ -74,7 +74,7 @@ export function buildMenu({ tab, params = {}, panel, f }) {
     items.push({ label: on ? '顯示原文（停止翻譯）' : `翻譯這一頁成${f.languages[f.target()] ?? ''}`, click: () => f.translator.toggle(tab.id) });
   }
 
-  items.push({ label: '去廣告', submenu: f.adblockItems(tab) });
+  items.push({ label: '去廣告與隱私', submenu: [...f.adblockItems(tab), ...(f.privacyItems ? [{ type: 'separator' }, ...f.privacyItems(tab)] : [])] });
 
   // Bookmarks
   const folders = f.bookmarks.folderPaths();
