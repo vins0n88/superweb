@@ -5,7 +5,7 @@ import { describeCall, isReadOnly } from './tools.js';
 import { hostOf, domainsInText } from '../security/policy.js';
 
 const MAX_RECENT_CHARS = 200000;
-const CONTENT_TOOLS = new Set(['snapshot', 'read_page']);
+const CONTENT_TOOLS = new Set(['snapshot', 'read_page', 'network_requests', 'console_messages']); // page data: watched for exfiltration
 let taskCounter = 0;
 
 /** A task scopes approvals, the domain allow-list (S3/S4), and audit records. */

@@ -83,6 +83,18 @@ export const TOOL_DEFS = [
     readOnly: true,
   },
   {
+    name: 'network_requests',
+    description: 'List the network requests of the current page (status, method, type, URL; secrets in URLs are masked). Use it to find out why a page is broken or empty: failed API calls, blocked scripts, 4xx/5xx responses.',
+    input_schema: { type: 'object', properties: { errors_only: { type: 'boolean', description: 'Only failed requests and HTTP errors.' }, limit: { type: 'integer', description: 'Most recent N (default 60).' } }, additionalProperties: false },
+    readOnly: true,
+  },
+  {
+    name: 'console_messages',
+    description: "Read the current page's JavaScript console (errors, warnings, logs). Use it with network_requests when a page misbehaves.",
+    input_schema: { type: 'object', properties: { level: { type: 'string', enum: ['error', 'warning', 'all'] }, limit: { type: 'integer' } }, additionalProperties: false },
+    readOnly: true,
+  },
+  {
     name: 'read_tab',
     description: 'Read another open tab\'s main content as Markdown without switching to it (for comparing tabs). Get ids from list_tabs.',
     input_schema: {
@@ -252,6 +264,8 @@ export function describeCall(name, input, label = '') {
     case 'switch_tab': return `Switch to tab ${input.id}`;
     case 'snapshot': return 'Read page structure';
     case 'read_page': return 'Read page content';
+    case 'network_requests': return input?.errors_only ? 'Check failed network requests' : 'Check network requests';
+    case 'console_messages': return `Read console ${input?.level && input.level !== 'all' ? `${input.level}s` : 'messages'}`;
     case 'list_tabs': return 'List open tabs';
     case 'read_tab': return `Read tab ${input.id}`;
     case 'propose_plan': return 'Propose a plan';
@@ -286,6 +300,8 @@ export function createToolExecutor(browser) {
     snapshot: async () => wrapUntrusted(await browser.runInPage('snapshot'), browser.activeUrl?.() ?? ''),
     read_page: async () => wrapUntrusted(await browser.runInPage('readPage'), browser.activeUrl?.() ?? ''),
     read_tab: async ({ id }) => wrapUntrusted(await browser.readTab(id), browser.tabUrl?.(id) ?? ''),
+    network_requests: async ({ errors_only: errorsOnly = false, limit } = {}) => wrapUntrusted(await browser.networkLog({ errorsOnly, limit }), browser.activeUrl?.() ?? ''),
+    console_messages: async ({ level = 'all', limit } = {}) => wrapUntrusted(await browser.consoleLog({ level, limit }), browser.activeUrl?.() ?? ''),
     navigate: async ({ url }) => {
       const target = normalizeInput(url);
       await browser.navigate(target);

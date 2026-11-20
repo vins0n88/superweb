@@ -3,12 +3,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain, safeStorage, Menu, dialog, Notification, shell } from 'electron';
-import { TabManager } from './tabs.js';
+import { app, BrowserWindow, ipcMain, safeStorage, Menu, dialog, Notification, shell, session } from 'electron';
+import { TabManager, AGENT_PARTITION } from './tabs.js';
 import { Settings } from './settings.js';
 import { normalizeInput } from './url.js';
 import { AuditLog, auditToCsv } from './security/audit.js';
 import { createAgentHost } from './agent-host.js';
+import { createTabLogs, installTabLogs } from './tab-logs.js';
 import { listTemplates, fillTemplate, templateChecks } from './templates.js';
 import { Scheduler } from './scheduler.js';
 import { SkillStore, SkillRecorder, skillToTask } from './skills.js';
@@ -450,7 +451,9 @@ app.whenReady().then(() => {
   const extensions = createExtensions({ dir: app.getPath('userData'), secrets: settings });
   const data = createDataSources();
   const jarvis = createJarvis({ config: () => ({ url: settings.data.jarvis.url, repo: settings.data.jarvis.repo || JARVIS_DEFAULT_REPO, token: settings.getKey('jarvis:token') }) });
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis });
+  const tabLogs = createTabLogs();
+  installTabLogs(tabLogs, { app, sessions: [session.defaultSession, session.fromPartition(AGENT_PARTITION)] });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis, tabLogs });
   registerIpc();
   features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify });
   buildMenu();

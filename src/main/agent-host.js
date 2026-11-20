@@ -37,7 +37,7 @@ export const MCP_TOOLS = [...TOOL_DEFS.filter((d) => !d.internal).map(withHints)
  * @param {(note: {title: string, body: string, jobId?: string}) => void} deps.notify
  * @param {string} deps.version
  */
-export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents, calendar, extensions, data, jarvis }) {
+export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents, calendar, extensions, data, jarvis, tabLogs }) {
   const pendingApprovals = new Map();
   const pendingPlans = new Map();
   const writeAudit = (entry) => {
@@ -135,6 +135,8 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
         return tabs().runInTab(id, 'readPage');
       },
       tabUrl: (id) => tabs().urlOf(id),
+      networkLog: (opts) => tabLogs?.network(requireTab().view.webContents.id, opts) ?? 'Network log unavailable.',
+      consoleLog: (opts) => tabLogs?.console(requireTab().view.webContents.id, opts) ?? 'Console log unavailable.',
     };
     const review = createGate({
       sites: () => settings.data.sites,
