@@ -74,5 +74,15 @@ $('export').addEventListener('click', async () => {
   } catch (err) { say(clean(err), false); }
 });
 
+// Live previews of the hidden pages while a run is going.
+setInterval(async () => {
+  const on = $('watch').checked && !$('run').hidden;
+  $('frames').hidden = !on;
+  if (!on || document.hidden) return;
+  const frames = await app.call('frames').catch(() => []);
+  $('frames').replaceChildren(...frames.filter((f) => f.src).map((f) => el('figure', {}, el('img', { src: f.src, alt: '' }), el('figcaption', { textContent: f.url }))));
+  if (!frames.length) $('frames').replaceChildren(el('p', { className: 'muted small', textContent: '目前沒有正在讀取的頁面' }));
+}, 1500);
+
 const ids = await app.call('identities');
 $('identity').replaceChildren(...ids.map((i) => el('option', { value: i.id, textContent: i.name })));

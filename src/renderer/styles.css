@@ -332,6 +332,7 @@ dialog input:focus, dialog select:focus { border-color: var(--accent); }
 .tab.agent { box-shadow: inset 0 2px 0 var(--warn); }
 .tab.agent .tab-title::before { content: '◈ '; }
 .tab.identity { box-shadow: inset 0 3px 0 var(--identity); }
+.job-thumb { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; margin-top: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--alt); cursor: pointer; }
 
 .msg.assistant a.cite {
   display: inline-block;

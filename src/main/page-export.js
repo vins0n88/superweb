@@ -86,3 +86,27 @@ export async function pagePng(wc, { full = true, nativeImage } = {}) {
   const truncated = height >= MAX_CSS_HEIGHT;
   return { png, truncated };
 }
+
+/**
+ * A small live JPEG of a page as a data URL, even while its tab is hidden (the DevTools
+ * protocol renders a fresh frame; capturePage needs a visible surface). For watching
+ * background jobs and batch pages.
+ * @param {Electron.WebContents} wc
+ */
+export async function thumbnail(wc, width = 480) {
+  if (!wc || wc.isDestroyed()) return '';
+  const dbg = wc.debugger;
+  const ours = !dbg.isAttached();
+  try {
+    if (ours) dbg.attach('1.3');
+    const m = await dbg.sendCommand('Page.getLayoutMetrics');
+    const vp = m.cssVisualViewport ?? m.visualViewport;
+    const scale = Math.min(1, width / Math.max(1, vp.clientWidth));
+    const shot = await dbg.sendCommand('Page.captureScreenshot', { format: 'jpeg', quality: 55, clip: { x: vp.pageX, y: vp.pageY, width: vp.clientWidth, height: vp.clientHeight, scale } });
+    return `data:image/jpeg;base64,${shot.data}`;
+  } catch {
+    return '';
+  } finally {
+    if (ours && dbg.isAttached()) dbg.detach();
+  }
+}

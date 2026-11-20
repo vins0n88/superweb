@@ -12,6 +12,7 @@ import { AuditLog, auditToCsv } from './security/audit.js';
 import { createAgentHost } from './agent-host.js';
 import { createTabLogs, installTabLogs } from './tab-logs.js';
 import { createRobots } from './robots.js';
+import { thumbnail } from './page-export.js';
 import { listTemplates, fillTemplate, templateChecks } from './templates.js';
 import { Scheduler } from './scheduler.js';
 import { SkillStore, SkillRecorder, skillToTask } from './skills.js';
@@ -180,6 +181,7 @@ function registerIpc() {
   ipcMain.handle('jobs:stop', (_e, id) => host.jobs.stop(id));
   ipcMain.handle('jobs:remove', (_e, id) => host.jobs.remove(id));
   ipcMain.handle('jobs:view', (_e, id) => host.jobs.view(id));
+  ipcMain.handle('jobs:frame', (_e, id) => thumbnail(tabs.get(host.jobs.get(id)?.tabId)?.view.webContents)); // live preview while hidden
 
   // ---- Export to Google Sheets / Notion (F4.2) ----
   const validTable = (t) => t && Array.isArray(t.columns) && Array.isArray(t.rows) && t.rows.every(Array.isArray);

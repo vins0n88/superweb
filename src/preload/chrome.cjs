@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('superweb', {
     stop: invoke('jobs:stop'),
     remove: invoke('jobs:remove'),
     view: invoke('jobs:view'),
+    frame: invoke('jobs:frame'),
     onChanged: on('jobs:changed'),
     onEvent: on('job:event'),
     onFocus: on('jobs:focus'),

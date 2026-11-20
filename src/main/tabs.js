@@ -88,6 +88,7 @@ export class TabManager {
     });
 
     this.win.contentView.addChildView(view);
+    view.setBounds(this.bounds); // background (job) tabs lay out at the real size even while hidden
     view.setVisible(false);
     wc.loadURL(url).catch(() => {}); // load errors surface as page state
     if (activate) this.activate(id);

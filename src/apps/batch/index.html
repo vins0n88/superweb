@@ -27,6 +27,8 @@
   <div class="card" id="run" hidden>
     <div class="row"><strong class="grow" id="progress-text"></strong><button type="button" class="btn small" id="cancel">停止</button><button type="button" class="btn small primary" id="export">匯出 CSV</button></div>
     <progress id="progress" max="1" value="0"></progress>
+    <label class="row small"><input type="checkbox" id="watch"> 顯示即時畫面（正在讀的頁面）</label>
+    <div id="frames" class="frames" hidden></div>
     <div class="table-wrap"><table id="table"></table></div>
   </div>
 </div>

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { BrowserWindow, dialog } from 'electron';
 import { partitionOf } from './sessions.js';
 import { createBatch } from './batch.js';
+import { thumbnail } from './page-export.js';
 
 const LOAD_TIMEOUT_MS = 30000;
 const SETTLE_MS = 800;
@@ -14,10 +15,12 @@ const withTimeout = (p, ms, msg) => { let t; return Promise.race([p, new Promise
 
 export function registerBatch({ router, sessions, settings, robots, newSession, srcDir, getWin, notify, audit }) {
   const agentPage = fs.readFileSync(path.join(srcDir, 'page', 'agent-page.js'), 'utf8');
+  const reading = new Map(); // url -> hidden window, for live previews
 
   async function read(url, profile, source) {
     sessions.get(profile); // its session is configured (ad blocking, privacy, proxy) before loading
     const win = new BrowserWindow({ show: false, width: 1280, height: 900, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, ...(partitionOf(profile) ? { partition: partitionOf(profile) } : {}) } });
+    reading.set(url, win);
     try {
       const wc = win.webContents;
       wc.setAudioMuted(true);
@@ -30,6 +33,7 @@ export function registerBatch({ router, sessions, settings, robots, newSession, 
       await wc.executeJavaScriptInIsolatedWorld(ISOLATED_WORLD, [{ code: agentPage }]);
       return await withTimeout(wc.executeJavaScriptInIsolatedWorld(ISOLATED_WORLD, [{ code: source }]), 15000, '讀取頁面逾時');
     } finally {
+      reading.delete(url);
       win.destroy();
     }
   }
@@ -54,6 +58,8 @@ export function registerBatch({ router, sessions, settings, robots, newSession, 
       return id;
     },
     state: (id) => batch.state(id),
+    /** Live previews of the pages being read right now. */
+    frames: () => Promise.all([...reading].map(async ([url, win]) => ({ url, src: await thumbnail(win.webContents, 360) }))),
     list: () => batch.list(),
     cancel: (id) => batch.cancel(id),
     async exportCsv(id) {

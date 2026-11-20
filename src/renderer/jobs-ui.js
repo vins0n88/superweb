@@ -22,6 +22,15 @@ export function initJobs({ api, notify, onCountChange }) {
   const expanded = new Set();
   const pendingByJob = new Map(); // jobId -> Map(requestId -> {kind, req})
   const details = new Map(); // jobId -> job detail (fetched when expanded)
+  const thumbs = new Map(); // jobId -> <img> live preview of a running job's hidden tab
+  // Live previews: about once a second, only while this view is open.
+  setInterval(async () => {
+    if (view.hidden || document.hidden) return;
+    for (const [id, img] of thumbs) {
+      const src = await api.jobs.frame(id).catch(() => '');
+      if (src) img.src = src;
+    }
+  }, 1000);
 
   function pending(jobId) {
     if (!pendingByJob.has(jobId)) pendingByJob.set(jobId, new Map());
@@ -51,6 +60,14 @@ export function initJobs({ api, notify, onCountChange }) {
     });
     card.append(head);
     if (job.lastStep && (job.status === 'running' || job.status === 'waiting')) card.append(el('div', 'job-step muted small', job.lastStep));
+    if (job.tabId && (job.status === 'running' || job.status === 'waiting')) {
+      const img = thumbs.get(job.id) ?? Object.assign(document.createElement('img'), { className: 'job-thumb', alt: '即時畫面', title: '即時畫面（每秒更新）：按一下切到這個分頁' });
+      img.onclick = () => api.jobs.view(job.id);
+      thumbs.set(job.id, img);
+      card.append(img);
+    } else {
+      thumbs.delete(job.id);
+    }
     if (job.error) card.append(el('div', 'error small', job.error));
     if (job.verification) {
       const v = job.verification;

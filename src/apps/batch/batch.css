@@ -8,5 +8,9 @@ th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: lef
 th { position: sticky; top: 0; background: var(--alt); }
 td.url { max-width: 260px; word-break: break-all; }
 td.ok { color: var(--ok); } td.error { color: var(--bad); } td.skipped { color: var(--warn); }
+.frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; }
+.frames figure { margin: 0; font-size: 11px; }
+.frames img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border: 1px solid var(--line); border-radius: 6px; background: var(--alt); }
+.frames figcaption { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .field { display: grid; grid-template-columns: 10em 9em 1fr auto; gap: 6px; }
 @media (max-width: 640px) { .field { grid-template-columns: 1fr; } }
