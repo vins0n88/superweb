@@ -22,6 +22,7 @@ export const DEFAULTS = {
   requirePlan: true,          // F2.2: plan preview before any action
   verifyResults: true,        // F2.4: self-check the outcome after tasks with actions
   agentProfileOnly: false,    // S7: agent only operates tabs in the dedicated agent profile
+  robotsForJobs: true,        // S14: background jobs, schedules and batch scraping follow robots.txt
   sites: { sensitive: [], blocked: [], privateAllowed: [] }, // S5 user additions; S13 private addresses the agent may reach
   mcp: { enabled: false, port: MCP_DEFAULT_PORT, token: '' },
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
@@ -115,6 +116,7 @@ export class Settings {
     if (patch.requirePlan !== undefined) this.data.requirePlan = Boolean(patch.requirePlan);
     if (patch.verifyResults !== undefined) this.data.verifyResults = Boolean(patch.verifyResults);
     if (patch.agentProfileOnly !== undefined) this.data.agentProfileOnly = Boolean(patch.agentProfileOnly);
+    if (patch.robotsForJobs !== undefined) this.data.robotsForJobs = Boolean(patch.robotsForJobs);
     if (patch.sites) {
       const sites = { ...DEFAULTS.sites, ...this.data.sites };
       for (const tier of ['sensitive', 'blocked']) {

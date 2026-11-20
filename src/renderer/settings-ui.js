@@ -65,6 +65,7 @@ export function initSettings({ api, panel }) {
     $('s-plan').checked = settings.requirePlan;
     $('s-verify').checked = settings.verifyResults;
     $('s-agent-profile').checked = settings.agentProfileOnly;
+    $('s-robots').checked = settings.robotsForJobs !== false;
     $('s-sensitive').value = settings.sites.sensitive.join('\n');
     $('s-blocked').value = settings.sites.blocked.join('\n');
     $('s-private').value = (settings.sites.privateAllowed ?? []).join('\n');
@@ -102,6 +103,7 @@ export function initSettings({ api, panel }) {
       requirePlan: $('s-plan').checked,
       verifyResults: $('s-verify').checked,
       agentProfileOnly: $('s-agent-profile').checked,
+      robotsForJobs: $('s-robots').checked,
       sites: { sensitive: lines($('s-sensitive').value), blocked: lines($('s-blocked').value), privateAllowed: lines($('s-private').value) },
       mcp: { enabled: $('s-mcp-enabled').checked, port: Number($('s-mcp-port').value), ...extra },
       integrations: {

@@ -16,8 +16,10 @@ const PAGE_TOOLS = new Set(['snapshot', 'read_page', 'click', 'type', 'select_op
  * @param {(ref: number) => Promise<object>} deps.inspect  element facts from the page
  * @param {() => string} [deps.searchTemplate]
  * @param {(host: string) => Promise<{address: string}[]>} [deps.lookup]  DNS (tests inject)
+ * @param {{allows: (url: string) => Promise<boolean>}} [deps.robots]
+ * @param {(task: object) => boolean} [deps.obeyRobots]  S14: unattended tasks follow robots.txt
  */
-export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searchTemplate = () => '', lookup }) {
+export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searchTemplate = () => '', lookup, robots, obeyRobots = () => false }) {
   async function navigationVerdict(rawUrl, task) {
     const url = normalizeInput(rawUrl, searchTemplate() || undefined);
     const host = hostOf(url);
@@ -31,6 +33,9 @@ export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searc
       if (target) {
         return { action: 'block', reason: `${host}${target !== host ? ` (${target})` : ''} is on your private network; the agent may not open it unless you name it in the task or add it to Settings → Security → private addresses the agent may reach (S13)`, event: 'sensitive_action_blocked' };
       }
+    }
+    if (robots && obeyRobots(task) && !(await robots.allows(url))) {
+      return { action: 'block', reason: `${host}'s robots.txt does not allow automated access to this page; background tasks follow it (S14, can be turned off in Settings → Security)` };
     }
     const allowed = hostAllowed(host, task.allowedDomains);
     if (!allowed) {
@@ -84,6 +89,9 @@ export function createGate({ sites, activeUrl, inspect, tabUrl = () => '', searc
     const tier = siteTier(url, sites());
     if (tier === 'blocked') {
       return { action: 'block', reason: `${hostOf(url)} is on the blocked-sites list; the agent may not read or operate it (S5)` };
+    }
+    if (robots && obeyRobots(task) && !(await robots.allows(url))) {
+      return { action: 'block', reason: `${hostOf(url)}'s robots.txt does not allow automated access to this page; background tasks follow it (S14)` };
     }
     if (name === 'snapshot' || name === 'read_page' || name === 'scroll') return { action: 'allow' };
 

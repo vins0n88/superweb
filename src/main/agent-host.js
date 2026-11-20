@@ -37,7 +37,7 @@ export const MCP_TOOLS = [...TOOL_DEFS.filter((d) => !d.internal).map(withHints)
  * @param {(note: {title: string, body: string, jobId?: string}) => void} deps.notify
  * @param {string} deps.version
  */
-export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents, calendar, extensions, data, jarvis, tabLogs }) {
+export function createAgentHost({ getTabs, settings, audit, send, notify, version, documents, calendar, extensions, data, jarvis, tabLogs, robots }) {
   const pendingApprovals = new Map();
   const pendingPlans = new Map();
   const writeAudit = (entry) => {
@@ -144,6 +144,8 @@ export function createAgentHost({ getTabs, settings, audit, send, notify, versio
       inspect: (ref) => tabs().runInTab(binding.tabId, 'inspect', ref),
       tabUrl: (id) => tabs().urlOf(id),
       searchTemplate: () => settings.data.searchTemplate,
+      robots,
+      obeyRobots: (task) => settings.data.robotsForJobs !== false && (task.source === 'job' || task.source === 'schedule' || task.source === 'batch'),
     });
     const pageTools = createToolExecutor(browser);
     const execute = async (name, input) => {

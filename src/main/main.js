@@ -3,13 +3,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain, safeStorage, Menu, dialog, Notification, shell, session } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, Menu, dialog, Notification, shell, session, net } from 'electron';
 import { TabManager, AGENT_PARTITION } from './tabs.js';
 import { Settings } from './settings.js';
 import { normalizeInput } from './url.js';
 import { AuditLog, auditToCsv } from './security/audit.js';
 import { createAgentHost } from './agent-host.js';
 import { createTabLogs, installTabLogs } from './tab-logs.js';
+import { createRobots } from './robots.js';
 import { listTemplates, fillTemplate, templateChecks } from './templates.js';
 import { Scheduler } from './scheduler.js';
 import { SkillStore, SkillRecorder, skillToTask } from './skills.js';
@@ -453,7 +454,8 @@ app.whenReady().then(() => {
   const jarvis = createJarvis({ config: () => ({ url: settings.data.jarvis.url, repo: settings.data.jarvis.repo || JARVIS_DEFAULT_REPO, token: settings.getKey('jarvis:token') }) });
   const tabLogs = createTabLogs();
   installTabLogs(tabLogs, { app, sessions: [session.defaultSession, session.fromPartition(AGENT_PARTITION)] });
-  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis, tabLogs });
+  host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis, tabLogs,
+    robots: createRobots({ fetchText: async (url) => { const r = await net.fetch(url, { signal: AbortSignal.timeout(5000) }); return { status: r.status, text: r.status < 300 ? await r.text() : '' }; } }) });
   registerIpc();
   features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify });
   buildMenu();
