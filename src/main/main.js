@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, safeStorage, Menu, dialog, Notification, shell, session, net } from 'electron';
-import { TabManager, AGENT_PARTITION } from './tabs.js';
+import { TabManager } from './tabs.js';
+import { createSessions } from './sessions.js';
 import { Settings } from './settings.js';
 import { normalizeInput } from './url.js';
 import { AuditLog, auditToCsv } from './security/audit.js';
@@ -33,6 +34,7 @@ registerAppScheme();
 
 let win;
 let tabs;
+let sessions; // browsing identities and their sessions (sessions.js)
 let settings;
 let audit;
 let host;
@@ -92,9 +94,10 @@ function safeName(name, ext) {
 function registerIpc() {
   // ---- Tabs & navigation ----
   ipcMain.handle('tabs:state', () => tabs.state());
+  // A new tab keeps the identity of the tab you are on unless one is asked for.
   ipcMain.handle('tabs:new', (_e, input, profile) => tabs.create(
     input ? normalizeInput(input, settings.data.searchTemplate) : settings.data.homepage,
-    { profile: profile === 'agent' ? 'agent' : 'default' },
+    { profile: typeof profile === 'string' && profile ? profile : (tabs.active()?.job ? 'default' : tabs.active()?.profile ?? 'default') },
   ));
   ipcMain.handle('tabs:close', (_e, id) => {
     tabs.close(id);
@@ -404,7 +407,10 @@ function createWindow() {
     },
   });
 
+  sessions ??= createSessions(session);
   tabs = new TabManager(win, {
+    ensureSession: (profile) => sessions.get(profile),
+    profileOf: (id) => (settings.data.profiles ?? []).find((p) => p.id === id) ?? null,
     pageScriptPaths: [path.join(SRC, 'page', 'agent-page.js'), path.join(SRC, 'page', 'translate-page.js'), path.join(SRC, 'page', 'media-page.js')],
     appPreload: path.join(SRC, 'preload', 'app.cjs'),
     webPreload: () => (settings.data.walletDapp ? path.join(SRC, 'preload', 'web.cjs') : null),
@@ -452,12 +458,13 @@ app.whenReady().then(() => {
   const extensions = createExtensions({ dir: app.getPath('userData'), secrets: settings });
   const data = createDataSources();
   const jarvis = createJarvis({ config: () => ({ url: settings.data.jarvis.url, repo: settings.data.jarvis.repo || JARVIS_DEFAULT_REPO, token: settings.getKey('jarvis:token') }) });
+  sessions ??= createSessions(session); // before anything hooks into sessions
   const tabLogs = createTabLogs();
-  installTabLogs(tabLogs, { app, sessions: [session.defaultSession, session.fromPartition(AGENT_PARTITION)] });
+  installTabLogs(tabLogs, { app, sessions });
   host = createAgentHost({ getTabs: () => tabs, settings, audit, send, notify, version: app.getVersion(), documents, calendar, extensions, data, jarvis, tabLogs,
     robots: createRobots({ fetchText: async (url) => { const r = await net.fetch(url, { signal: AbortSignal.timeout(5000) }); return { status: r.status, text: r.status < 300 ? await r.text() : '' }; } }) });
   registerIpc();
-  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify });
+  features = registerFeatures({ ipcMain, getTabs: () => tabs, getWin: () => win, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs: host.jobs, version: app.getVersion(), dataDir: app.getPath('userData'), srcDir: SRC, notify, sessions });
   buildMenu();
   createWindow();
   host.syncMcp();

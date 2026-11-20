@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>身分</title>
+<link rel="stylesheet" href="/_shared/app.css">
+<style>
+  .swatch { width: 18px; height: 18px; border-radius: 50%; display: inline-block; flex: none; }
+  .colors { display: flex; gap: 6px; }
+  .colors button { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .colors button[aria-pressed="true"] { border-color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head"><h1>👤 身分</h1></div>
+  <p class="muted">每個身分有自己的 Cookie、登入狀態與網站資料，互不相通：同一個網站可以在「工作」登入公司帳號、在「個人」登入私人帳號。分頁上方的色條代表它的身分；按 ＋ 開新分頁會沿用目前分頁的身分。</p>
+  <p id="msg" class="small" hidden></p>
+  <div class="card">
+    <form id="add" class="row">
+      <input id="name" placeholder="新身分的名稱，例如：工作、測試帳號" maxlength="20" class="grow" required>
+      <div class="colors" id="colors" role="group" aria-label="顏色"></div>
+      <button class="btn primary">＋ 新增</button>
+    </form>
+  </div>
+  <div class="card"><ul class="list" id="list"></ul></div>
+  <p class="small muted">「AI 專用」身分（右鍵 → 身分）是給 AI 操作的隔離環境，可在設定限制 AI 只能用它。</p>
+</div>
+<script src="profiles.js" type="module"></script>
+</body>
+</html>

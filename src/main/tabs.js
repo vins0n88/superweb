@@ -9,7 +9,8 @@ const LOAD_TIMEOUT_MS = 15000;
 const SETTLE_MS = 400;
 const AGENT_WORLD_ID = 1999;
 // S7: agent-profile tabs keep cookies/storage apart from the user's everyday profile.
-export const AGENT_PARTITION = 'persist:superweb-agent';
+export { AGENT_PARTITION } from './sessions.js';
+import { partitionOf } from './sessions.js';
 
 export class TabManager {
   /**
@@ -18,8 +19,10 @@ export class TabManager {
    *   pageScriptPaths: the agent page script first, then add-ons that extend window.__superweb
    *   appPreload: bridge for built-in app pages (superweb://…), given only to tabs opened as apps
    */
-  constructor(win, { pageScriptPaths, appPreload, webPreload, onChange, onContextMenu }) {
+  constructor(win, { pageScriptPaths, appPreload, webPreload, onChange, onContextMenu, ensureSession = () => {}, profileOf = () => null }) {
     this.appPreload = appPreload;
+    this.ensureSession = ensureSession; // configures an identity's session before its first tab loads
+    this.profileOf = profileOf; // id -> {name, color} of a user identity
     this.webPreload = webPreload; // () => path | null: wallet bridge for ordinary tabs when the user turned it on
     this.win = win;
     this.pageScript = pageScriptPaths.map((p) => fs.readFileSync(p, 'utf8')).join('\n;\n');
@@ -33,20 +36,22 @@ export class TabManager {
     this.hidden = false;
   }
 
-  /** @param {{activate?: boolean, profile?: 'default'|'agent', job?: string}} [opts] job: owning background job */
+  /** @param {{activate?: boolean, profile?: string, job?: string}} [opts] profile: 'default', 'agent' or a user identity; job: owning background job */
   create(url, { activate = true, profile = 'default', job = '' } = {}) {
     const id = this.nextId++;
     const app = appNameOf(url);
+    if (app || (profile !== 'agent' && profile !== 'default' && !this.profileOf(profile))) profile = 'default';
+    this.ensureSession(profile);
     const view = new WebContentsView({
       webPreferences: {
         sandbox: true, contextIsolation: true, nodeIntegration: false,
         ...(app ? { preload: this.appPreload, backgroundThrottling: false }
-          : profile === 'agent' ? { partition: AGENT_PARTITION }
+          : profile !== 'default' ? { partition: partitionOf(profile) }
             : !job && this.webPreload?.() ? { preload: this.webPreload() } : {}),
       },
     });
     const wc = view.webContents;
-    const tab = { id, view, title: 'New Tab', url, loading: true, favicon: '', profile: app ? 'default' : profile, job, app };
+    const tab = { id, view, title: 'New Tab', url, loading: true, favicon: '', profile, job, app };
     // App tabs stay on their app; web pages can never navigate into an app (it would lack its bridge anyway).
     const guard = (e, target) => {
       if (app ? appNameOf(target) === app : !isAppUrl(target)) return;
@@ -169,6 +174,7 @@ export class TabManager {
         const wc = t.view.webContents;
         return {
           id, title: t.title, url: t.url, loading: t.loading, favicon: t.favicon, profile: t.profile, job: t.job, app: t.app,
+          identity: this.profileOf(t.profile), // {name, color} for a user identity
           canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(),
         };
       }),

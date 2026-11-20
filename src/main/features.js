@@ -4,7 +4,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Menu, clipboard, dialog, session, net, app as electronApp } from 'electron';
+import { Menu, clipboard, dialog, net, app as electronApp } from 'electron';
 import { createSession } from './ai/providers/index.js';
 import { siteTier } from './security/policy.js';
 import { createTranslator, LANGUAGES } from './translate.js';
@@ -14,7 +14,6 @@ import { createPlayer } from './player.js';
 import { createGameMode } from './game.js';
 import { createMail } from './mail.js';
 import { createProxy } from './proxy.js';
-import { AGENT_PARTITION } from './tabs.js';
 import { createRestApi, API_DEFAULT_PORT } from './rest-api.js';
 import { createTaskTools } from './mcp-tasks.js';
 import { listTemplates } from './templates.js';
@@ -23,6 +22,7 @@ import { createBookmarks, ROOT } from './bookmarks.js';
 import { buildMenu } from './menus.js';
 import { WORLD_MONITOR_VARIANTS, variantUrl, isWorldMonitor } from './worldmonitor.js';
 import { registerAdblock } from './adblock-setup.js';
+import { registerProfiles } from './profiles.js';
 import { pagePdf, pagePng, fileNameFor } from './page-export.js';
 
 /** Built-in tool pages, in launcher order. */
@@ -36,6 +36,7 @@ export const APPS = {
   player: { title: '影音播放器', icon: '▶' },
   bookmarks: { title: '收藏夾', icon: '⭐' },
   jarvis: { title: '賈維斯 Jarvis 2.0', icon: '🤖' },
+  profiles: { title: '身分', icon: '👤' },
 };
 
 /**
@@ -48,7 +49,7 @@ export const APPS = {
  * @param {(channel: string, payload: unknown) => void} deps.send
  * @param {ReturnType<import('./documents.js').createDocumentStore>} deps.documents
  */
-export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs, version, dataDir, srcDir, notify }) {
+export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, send, documents, calendar, extensions, data, jarvis, jobs, version, dataDir, srcDir, notify, sessions }) {
   const writeAudit = (entry) => {
     try {
       audit.write(entry);
@@ -204,7 +205,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
   const proxy = createProxy({
     dir: dataDir,
     secrets: settings,
-    sessions: () => [session.defaultSession, session.fromPartition(AGENT_PARTITION)],
+    sessions: () => sessions.all(),
     // net.request (not fetch) so the proxy's username/password can be supplied on its auth challenge
     fetchVia: (url, ses) => new Promise((resolve, reject) => {
       const req = net.request({ url, session: ses, useSessionCookies: false, cache: 'no-store' });
@@ -224,6 +225,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     }),
   });
   proxy.apply().catch(() => {});
+  sessions.configure((ses) => proxy.applyTo(ses)); // identities added later
   proxy.onChange((st) => { send('proxy:changed', { mode: st.mode, active: st.servers.find((x) => x.id === st.active)?.name ?? '' }); router.emit('proxy', 'changed', st); });
   electronApp.on('login', (event, _wc, _details, authInfo, callback) => {
     if (!authInfo.isProxy) return;
@@ -255,7 +257,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     ];
   }
 
-  const { adblockItems } = registerAdblock({ ipcMain, settings, dataDir, getTabs, notify });
+  const { adblockItems } = registerAdblock({ ipcMain, settings, dataDir, getTabs, notify, sessions });
 
   // ---- Data sources & local REST API ----
   const taskTools = createTaskTools({ jobs, activeUrl: () => getTabs().activeUrl(), audit: writeAudit });
@@ -367,6 +369,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
     const out = [...subs, ...links];
     return out.length ? out : [{ label: '（空的）', enabled: false }];
   }
+  const identityItems = registerProfiles({ router, settings, sessions, getTabs, homepage: () => settings.data.homepage });
   router.register('bookmarks', {
     tree: () => bookmarks.tree(),
     folderPaths: () => bookmarks.folderPaths(),
@@ -433,7 +436,7 @@ export function registerFeatures({ ipcMain, getTabs, getWin, settings, audit, se
 
   // ---- The right-click menu (also ☰ and right-click on the browser chrome) ----
   const menuFeatures = {
-    translator, game, proxyItems, adblockItems, apps: APPS, openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
+    translator, game, proxyItems, adblockItems, identityItems, apps: APPS, openApp, bookmarks, bookmarkMenu, worldMonitorItems, languages: LANGUAGES,
     target: () => settings.data.translate.target,
     translateSelection: (tab, text) => translateSelection(tab, text),
     openTab: (url) => getTabs().create(url),

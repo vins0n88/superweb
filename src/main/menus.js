@@ -94,9 +94,11 @@ export function buildMenu({ tab, params = {}, panel, f }) {
     ],
   });
 
+  if (f.identityItems) items.push({ label: '身分', submenu: f.identityItems(tab) });
+
   // Tools
   items.push({ label: '🌍 世界監控 World Monitor', submenu: f.worldMonitorItems() });
-  items.push({ label: '工具', submenu: Object.entries(f.apps).filter(([n]) => n !== 'bookmarks').map(([n, a]) => ({ label: `${a.icon}  ${a.title}`, click: () => f.openApp(n) })) });
+  items.push({ label: '工具', submenu: Object.entries(f.apps).filter(([n]) => n !== 'bookmarks' && n !== 'profiles').map(([n, a]) => ({ label: `${a.icon}  ${a.title}`, click: () => f.openApp(n) })) });
   items.push({ label: '網路與代理', submenu: f.proxyItems() });
   if (isWeb) items.push({ label: 'H5 遊戲模式', submenu: f.game.menuTemplate(tab.id) });
   if (isWeb) {

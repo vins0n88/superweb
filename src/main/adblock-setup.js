@@ -3,12 +3,11 @@
 
 import { createRequire } from 'node:module';
 import { Worker } from 'node:worker_threads';
-import { app, session, net, webContents } from 'electron';
-import { AGENT_PARTITION } from './tabs.js';
+import { app, net, webContents } from 'electron';
 import { createAdblock, adblockMenu } from './adblock.js';
 import { blocksSubresource } from './security/network.js';
 
-export function registerAdblock({ ipcMain, settings, dataDir, getTabs, notify }) {
+export function registerAdblock({ ipcMain, settings, dataDir, getTabs, notify, sessions }) {
   const adblock = createAdblock({
     dir: dataDir,
     config: () => settings.data.adblock,
@@ -32,11 +31,11 @@ export function registerAdblock({ ipcMain, settings, dataDir, getTabs, notify })
     if (page && blocksSubresource(d.url, page, settings.data.sites?.privateAllowed)) return cb({ cancel: true });
     return adblock.onBeforeRequest(d, cb);
   };
-  for (const ses of [session.defaultSession, session.fromPartition(AGENT_PARTITION)]) {
-    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, ses === session.defaultSession ? adblock.onBeforeRequest : agentGuard);
+  sessions.configure((ses, profile) => {
+    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, profile === 'agent' ? agentGuard : adblock.onBeforeRequest);
     ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, adblock.onHeadersReceived);
     ses.registerPreloadScript({ type: 'frame', filePath: cosmeticPreload });
-  }
+  });
   ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url, msg) => adblock.onInjectCosmeticFilters(e, url, msg));
   ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', () => adblock.onIsMutationObserverEnabled());
   app.on('web-contents-created', (_e, wc) => {

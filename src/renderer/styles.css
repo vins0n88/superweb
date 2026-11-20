@@ -331,6 +331,7 @@ dialog input:focus, dialog select:focus { border-color: var(--accent); }
 
 .tab.agent { box-shadow: inset 0 2px 0 var(--warn); }
 .tab.agent .tab-title::before { content: '◈ '; }
+.tab.identity { box-shadow: inset 0 3px 0 var(--identity); }
 
 .msg.assistant a.cite {
   display: inline-block;

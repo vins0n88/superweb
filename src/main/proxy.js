@@ -114,6 +114,8 @@ export function createProxy({ dir, secrets, sessions, fetchVia }) {
     onChange: (fn) => listeners.add(fn),
     state: publicState,
     apply,
+    /** A session created later (a new identity) gets the current route too. */
+    applyTo: (ses) => ses.setProxy(proxyConfig(state)).catch(() => {}),
     async setMode(mode) {
       if (!MODES.includes(mode)) throw new Error('未知的連線模式');
       if ((mode === 'proxy' || mode === 'split') && !state.servers.length) throw new Error('請先新增代理伺服器');

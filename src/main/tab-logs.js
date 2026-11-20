@@ -75,10 +75,10 @@ export function createTabLogs({ now = Date.now } = {}) {
  * navigations of every page. (onCompleted/onErrorOccurred are free; adblock owns onBeforeRequest.)
  */
 export function installTabLogs(logs, { app, sessions }) {
-  for (const ses of sessions) {
+  sessions.configure((ses) => {
     ses.webRequest.onCompleted({ urls: ['<all_urls>'] }, (d) => logs.request(d));
     ses.webRequest.onErrorOccurred({ urls: ['<all_urls>'] }, (d) => logs.request(d));
-  }
+  });
   const LEVELS = ['debug', 'info', 'warning', 'error'];
   app.on('web-contents-created', (_e, wc) => {
     const id = wc.id;

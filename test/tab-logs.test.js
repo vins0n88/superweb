@@ -44,7 +44,7 @@ test('installTabLogs: Electron events of both console-message shapes are recorde
   const logs = createTabLogs();
   const app = new EventEmitter();
   const ses = { webRequest: { onCompleted: (_f, fn) => { ses.done = fn; }, onErrorOccurred: (_f, fn) => { ses.err = fn; } } };
-  installTabLogs(logs, { app, sessions: [ses] });
+  installTabLogs(logs, { app, sessions: { configure: (fn) => fn(ses, 'default') } });
   const wc = Object.assign(new EventEmitter(), { id: 11, once: EventEmitter.prototype.once });
   app.emit('web-contents-created', {}, wc);
   wc.emit('console-message', { level: 'error', message: 'new shape', lineNumber: 1, sourceId: '' });

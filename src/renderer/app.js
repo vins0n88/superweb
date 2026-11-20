@@ -54,10 +54,11 @@ function renderTabs() {
   const ordered = [...tabState.tabs.filter((t) => !t.job), ...tabState.tabs.filter((t) => t.job)];
   tabstrip.replaceChildren(...ordered.map((t) => {
     const el = document.createElement('div');
-    el.className = `tab${t.id === tabState.activeId ? ' active' : ''}${t.loading ? ' loading' : ''}${t.profile === 'agent' ? ' agent' : ''}${t.job ? ' job' : ''}`;
+    el.className = `tab${t.id === tabState.activeId ? ' active' : ''}${t.loading ? ' loading' : ''}${t.profile === 'agent' ? ' agent' : ''}${t.identity ? ' identity' : ''}${t.job ? ' job' : ''}`;
+    if (t.identity) el.style.setProperty('--identity', t.identity.color);
     el.setAttribute('role', 'tab');
     el.setAttribute('aria-selected', String(t.id === tabState.activeId));
-    el.title = `${t.profile === 'agent' ? '[Agent profile] ' : ''}${t.title}\n${t.url}`;
+    el.title = `${t.profile === 'agent' ? '[Agent profile] ' : t.identity ? `[身分：${t.identity.name}] ` : ''}${t.title}\n${t.url}`;
 
     if (t.favicon && !t.loading) {
       const img = document.createElement('img');

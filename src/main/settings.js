@@ -9,6 +9,7 @@ import { MCP_DEFAULT_PORT, newToken } from './mcp-server.js';
 import { DEFAULT_SENSITIVE_DOMAINS } from './security/policy.js';
 import { WORLD_MONITOR_HOME, OLD_DEFAULT_HOME } from './worldmonitor.js';
 import { cleanPrivateEntries } from './security/network.js';
+import { cleanProfiles } from './sessions.js';
 
 const MAX_SITE_ENTRIES = 500;
 const TRANSLATE_TARGETS = ['zh-Hant', 'zh-Hans', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'th', 'vi'];
@@ -23,6 +24,7 @@ export const DEFAULTS = {
   verifyResults: true,        // F2.4: self-check the outcome after tasks with actions
   agentProfileOnly: false,    // S7: agent only operates tabs in the dedicated agent profile
   robotsForJobs: true,        // S14: background jobs, schedules and batch scraping follow robots.txt
+  profiles: [],               // browsing identities the user added: [{id, name, color}] (sessions.js)
   sites: { sensitive: [], blocked: [], privateAllowed: [] }, // S5 user additions; S13 private addresses the agent may reach
   mcp: { enabled: false, port: MCP_DEFAULT_PORT, token: '' },
   integrations: { google: { clientId: '' }, notion: { parent: '' } }, // F4.2 (secrets live in keys)
@@ -117,6 +119,7 @@ export class Settings {
     if (patch.verifyResults !== undefined) this.data.verifyResults = Boolean(patch.verifyResults);
     if (patch.agentProfileOnly !== undefined) this.data.agentProfileOnly = Boolean(patch.agentProfileOnly);
     if (patch.robotsForJobs !== undefined) this.data.robotsForJobs = Boolean(patch.robotsForJobs);
+    if (patch.profiles !== undefined) this.data.profiles = cleanProfiles(patch.profiles);
     if (patch.sites) {
       const sites = { ...DEFAULTS.sites, ...this.data.sites };
       for (const tier of ['sensitive', 'blocked']) {
